@@ -1,0 +1,197 @@
+<html>
+<head>
+    <title>(Project 2) Objects in Space</title>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<script type="module">
+
+// Objects & Functions
+// Gets a random number
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomArbitrary(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// Gets a random integer
+// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomArbitraryInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Start of Javascript code
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
+import { DragControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls'
+import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls'
+
+/**
+ * Initilization function, creating scene, camera, and objects.
+ */
+// Creating Scene and Camera
+ var scene = new THREE.Scene();
+//scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0005 );
+
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.z = 0;  // Try moving this around!
+//camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+scene.add( camera );
+
+// Renderer 
+
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+//renderer.setClearColor( 0xffffff, 1 );
+//renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
+// If you want this to span the window, instead of using the myCanvas object, use the window object
+renderer.setPixelRatio(window.devicePixelRatio * 1.01);
+renderer.setSize(window.innerWidth, window.innerHeight * 1);
+renderer.setClearColor(0x000000);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Light
+var light = new THREE.PointLight( 0xff7f24, 6, 1000 );
+light.position.set( 0, 0, 0 );
+light.castShadow = true;            // default false
+light.shadow.mapSize.width = 1024;  // default 512
+light.shadow.mapSize.height = 1024; // default 512
+light.shadow.camera.near = 2;       // default 0.5
+light.shadow.camera.far = 1500;  
+scene.add(light);
+
+    // Create rocks
+var rock = createRock(2+Math.random()*25, 50, 1000, 300, 300, 400);
+scene.add( rock );
+
+generateRocks(camera.position.z);
+
+
+/**
+ * Generates the asteroids based off of where the Z of the camera is.\
+ */
+function generateRocks(cameraZ) {
+    
+    var numOfRocks = getRandomArbitraryInt(35, 100);
+    var rocks = [];
+
+    for(var i = 0; i < numOfRocks; i++) {
+        var rock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
+        rocks.push(rock);
+        scene.add( rock );
+    }
+
+}
+
+/**
+ Function that creates our asteroids, inspired by https://codepen.io/Divyz/pen/VPrZMy
+ */
+function createRock(size, spreadX, maxWidth, maxHeight, minDepth, maxDepth){
+	var geometry = new THREE.DodecahedronGeometry(size, 1);
+    geometry.vertices.forEach(function(v){
+    v.x += (0-Math.random()*(size/4));
+    v.y += (0-Math.random()*(size/4));
+    v.z += (0-Math.random()*(size/4));
+  })
+  var color = '#111111';
+  var color = ColorLuminance(color,2+Math.random()*10);
+  console.log(color);
+  var texture = new THREE.MeshStandardMaterial({color:color,
+                                        shading: THREE.FlatShading,
+                                            //shininess: 0.5,
+                                            roughness: 0.8,
+                                            metalness: 1
+                                        });
+
+  var cube = new THREE.Mesh(geometry, texture);
+  cube.castShadow = true;
+  cube.receiveShadow = true;
+  cube.scale.set(1+Math.random()*0.4,1+Math.random()*0.8,1+Math.random()*0.4);
+	//cube.rotation.y = Math.PI/4;
+	//cube.rotation.x = Math.PI/4;
+  var x = spreadX/2-Math.random()*spreadX;
+  var centeredness = 1-(Math.abs(x)/(maxWidth/2));
+  var y = (maxHeight/2-Math.random()*maxHeight)*centeredness;
+  var z = /*(maxDepth/2-Math.random()*maxDepth)**/getRandomArbitrary(minDepth, maxDepth) * centeredness * -1;
+  console.log(z);
+  console.log(cube);
+  cube.position.set(x,y,z)
+  cube.r = {};
+  cube.r.x = Math.random() * 0.005;
+  cube.r.y = Math.random() * 0.005;
+  cube.r.z = Math.random() * 0.005;
+  return cube;
+};
+
+/**
+ * Creates the Color, will probably replace for a fragment shader.
+ */
+function ColorLuminance(hex, lum) {
+    // validate hex string
+    hex = String(hex).replace(/[^0-9a-f]/gi, '');
+    if (hex.length < 6) {
+        hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    }
+    lum = lum || 0;
+
+    // convert to decimal and change luminosity
+    var rgb = "#", c, i;
+    for (i = 0; i < 3; i++) {
+        c = parseInt(hex.substr(i*2,2), 16);
+        c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+        rgb += ("00"+c).substr(c.length);
+    }
+
+    return rgb;
+}
+
+
+
+
+
+
+
+function animate() {
+
+    // Can't do this for movement because it is based on the rendering time of the render() method.
+    //camera.position.z = camera.position.z - 1;
+
+    requestAnimationFrame(animate);
+    render();
+}
+
+document.addEventListener('keypress', keypressed );
+
+function keypressed( event )
+{
+    const rotate_speed = 0.1;
+
+    switch(event.key) {
+        case "w": {
+            camera.rotateX( -rotate_speed );
+        }; break;
+        case "a": {
+            camera.rotateY( -rotate_speed );
+        }; break;
+        case "s": {
+            camera.rotateX( rotate_speed );
+        }; break;
+        case "d": {
+            camera.rotateY( rotate_speed );
+        }; break;
+    }		
+}
+
+function render() {
+    renderer.render( scene, camera );
+}
+
+animate();
+
+</script>
+
+</body>
+</html>
