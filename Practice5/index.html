@@ -1,0 +1,103 @@
+<html>
+<head>
+    <title>Three.js Framework Example</title>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<script type="module">
+
+// Start of Javascript code
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
+import { DragControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls'
+import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls'
+
+// Creating Scene and Camera
+var scene = new THREE.Scene();
+
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.z = 5;  // Try moving this around!
+camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+scene.add( camera );
+
+// Renderer 
+
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+//renderer.setClearColor( 0xffffff, 1 );
+renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
+// If you want this to span the window, instead of using the myCanvas object, use the window object
+renderer.setPixelRatio(window.devicePixelRatio * 1.01);
+renderer.setSize(window.innerWidth, window.innerHeight * 1);
+
+// Create Tetrahedron Geometries
+var geom1 = new THREE.TetrahedronGeometry(0.5, 0);
+var mat1 = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'black' )} );
+var tetrahedron1 = new THREE.Mesh( geom1, mat1 );
+tetrahedron1.position.set(-0.75, 0.75, 0 );
+scene.add(tetrahedron1);
+
+var geom2 = new THREE.TetrahedronGeometry(0.5, 0);
+var mat2 = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'pink' )} );
+var tetrahedron2 = new THREE.Mesh( geom2, mat2 );
+tetrahedron2.position.set(0.75, -0.75, 0 );
+scene.add(tetrahedron2);
+
+// Light
+var light = new THREE.PointLight(0xffffff);
+light.position.set(1,1,0);
+scene.add(light);
+
+// Orbit Controls
+//const orbitControls = new OrbitControls( camera, renderer.domElement );
+//orbitControls.update();
+
+var tPressed = false;
+
+function animate() {
+
+    if(tPressed) {
+        // Multiply by the PI and rad
+        camera.position.setX()
+    }
+
+    //orbitControls.update();
+
+    requestAnimationFrame(animate);
+    render();
+}
+
+document.addEventListener('keypress', keypressed );
+
+function keypressed( event )
+{
+    const rotate_speed = 0.1;
+
+    switch(event.key) {
+        case "w": {
+            camera.rotateX( -rotate_speed );
+        }; break;
+        case "a": {
+            camera.rotateY( -rotate_speed );
+        }; break;
+        case "s": {
+            camera.rotateX( rotate_speed );
+        }; break;
+        case "d": {
+            camera.rotateY( rotate_speed );
+        }; break;
+    }		
+}
+
+
+function render() {
+    renderer.render( scene, camera );
+}
+
+animate();
+
+</script>
+
+</body>
+</html>

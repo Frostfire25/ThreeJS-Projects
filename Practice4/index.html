@@ -1,0 +1,83 @@
+<html>
+<head>
+    <title>Three.js Framework Example</title>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<!-- Shader script -->
+<script type ="x-shader/x-vertex " id ="vertexShader">
+    uniform float delta;
+
+    void main ()
+    {
+        vec3 p = position;
+        p += delta * .1 * p;
+
+        gl_Position = vec4(p, 1.0);
+    }
+</script>
+
+<script type="module">
+
+// Start of Javascript code
+
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
+
+// Creating Scene and Camera
+var scene = new THREE.Scene();
+
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.z = 3;  // Try moving this around!
+camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+scene.add( camera );
+
+// Renderer 
+
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+//renderer.setClearColor( 0xffffff, 1 );
+renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
+// If you want this to span the window, instead of using the myCanvas object, use the window object
+renderer.setPixelRatio(window.devicePixelRatio * 1.01);
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+var delta = 0.5;
+var uniforms = {
+    delta: { value: delta }
+};
+
+// Creating black outline box for puzzle
+const sphereGeometry = new THREE.SphereGeometry( delta, 64, 64 );
+const sphereMaterial = new THREE.ShaderMaterial ({
+    uniforms: [uniforms] ,
+    vertexShader: document.getElementById('vertexShader').textContent,
+});
+const sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
+scene.add( sphere );
+
+// Initiates graphical loops
+animate();
+
+function animate() {
+
+   // Update the speed of the frams
+   delta += 0.5;
+
+   console.log(sphere);
+   sphere.material.uniforms[0].delta.value = Math.sin(delta);
+
+   console.log(delta); 
+   requestAnimationFrame(animate);
+   render();
+}
+
+function render() {
+  renderer.render( scene, camera );
+}
+</script>
+
+</body>
+</html>
+

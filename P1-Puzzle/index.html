@@ -1,0 +1,515 @@
+<html>
+<head>
+    <title>Three.js Framework Example</title>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<script type="module">
+
+/**
+ * Notes
+ * 
+ *    Two Extra Features
+ *     - Timer
+ *     - Animation at the end along with reset of game.
+ * 
+ *    Sizes, range of pieces, and snapping bounds can be found at the Initilizing Objects section.
+ *    Object oriented priciples are demonistrated in the puzzle_piece class and puzzle_pieces array. 
+ *    Other OOP can be found with most function call's and animation() design.
+ *    
+ * Current Bugs
+ *   - Very small pieces being generated
+ *   - Pieces with the same shade as the background are being generated making finding them harder than a typical piece
+ *   - Minimum amount of pieces is 8.
+ */
+
+// Start of Javascript code
+
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
+import { DragControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls'
+
+// Creating Scene and Camera
+var scene = new THREE.Scene();
+
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.z = 3;  // Try moving this around!
+camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+scene.add( camera );
+
+// Renderer 
+
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+//renderer.setClearColor( 0xffffff, 1 );
+renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
+// If you want this to span the window, instead of using the myCanvas object, use the window object
+renderer.setPixelRatio(window.devicePixelRatio * 1.01);
+renderer.setSize(window.innerWidth, window.innerHeight * 1);
+
+// Objects & Functions
+// Gets a random number
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomArbitrary(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// Gets a random integer
+// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomArbitraryInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Represents a point in the puzzle box
+class point2D {
+
+    constructor(x, y) {
+      this.x = x;
+      this.y = y;
+    }
+
+    toString() {
+        return `[${this.x} , ${this.y}]`;
+    };
+
+}
+
+class puzzle_piece {
+
+  constructor(points, color, mesh, bounding_box, escape_direction) {
+    this.points = points;
+    this.color = color;
+    this.mesh = mesh;
+    this.bounding_box = bounding_box;
+    this.starting_X = mesh.position.x.valueOf();
+    this.starting_Y = mesh.position.y.valueOf();
+    // Attribute that determines if this puzzle piece is in place
+    this.inPlace = false;
+    this.escape_direction = escape_direction;
+  }  
+
+}
+
+
+// Initilizing Objects
+
+const PUZZLE_WIDTH = 0.5;
+const PUZZLE_HEIGHT = 0.5;
+// range(NUMBER_OF_PIECES, +- 2)
+const NUMBER_OF_PIECES = 8;
+const X_LEVEL = 0;
+const Y_LEVEL = 0;
+// The bounds that a piece must be in to be recognized as set and to snap into place.
+const SNAP_BOUNDS = 0.010;
+
+// Clock object
+var clock = new THREE.Clock(true);
+clock.start();
+
+// Creating black outline box for puzzle
+const geometry = new THREE.BoxGeometry( PUZZLE_WIDTH + 0.025, PUZZLE_HEIGHT + 0.025, 0 );
+const material = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'black' )} );
+const cube = new THREE.Mesh( geometry, material );
+cube.position.setX(X_LEVEL);
+cube.position.setY(Y_LEVEL);
+scene.add( cube );
+
+// Creating a bounding box for the outline
+var outlineBoundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+outlineBoundingBox.setFromObject(cube);
+
+// Creating the inside box
+const insideBox = new THREE.BoxGeometry( PUZZLE_WIDTH, PUZZLE_HEIGHT, 0 );
+const insideBoxM = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'white' )} );
+const insidBoxCube = new THREE.Mesh( insideBox, insideBoxM );
+insidBoxCube.position.setX(X_LEVEL);
+insidBoxCube.position.setY(Y_LEVEL);
+scene.add( insidBoxCube );
+
+// Defining the center point of the puzzle
+var x = getRandomArbitrary(-0.25 * PUZZLE_WIDTH, 0.25 * PUZZLE_WIDTH);
+var y = getRandomArbitrary(-0.25 * PUZZLE_HEIGHT, 0.25 * PUZZLE_HEIGHT);
+const center = new point2D(x, y);
+
+
+var puzzle_pieces = [];
+
+const W2 = PUZZLE_WIDTH/2;
+const H2 = PUZZLE_HEIGHT/2;
+
+var timesRan = 0;
+var puzzle_piece_unlocked = [];
+// Draws a triangle based off of the points.
+function drawTriangle(v, point, center, escape_direction) {
+    var triG = new THREE.Geometry();
+    triG.vertices.push(new THREE.Vector3(center.x, center.y, 0));
+    triG.vertices.push(new THREE.Vector3(point.x, point.y, 0));
+    triG.vertices.push(new THREE.Vector3(v.x, v.y, 0));
+    triG.faces.push(new THREE.Face3(0, 1, 2, new THREE.Vector3(0, 0, 1)));
+
+    var color = new THREE.Color();
+    color.setHex(Math.random() * 0xffffff);
+
+    var mat = new THREE.MeshBasicMaterial( {color: color, side: THREE.DoubleSide} );
+    var mesh = new THREE.Mesh(triG, mat);
+    scene.add(mesh);
+
+    var pieceBoundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    pieceBoundingBox.setFromObject(mesh);
+
+    // Create piece object for storing data
+    var piece = new puzzle_piece([v, point, center], color, mesh, pieceBoundingBox, escape_direction);
+    puzzle_pieces.push(piece);
+    puzzle_piece_unlocked.push(mesh);
+
+    timesRan ++;
+    return piece;
+}
+
+
+// Top 
+const escape_top = new point2D(0, 1);
+var num_top = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
+var vertexes_top = new Array(num_top);
+// Add in all of the vertexs for top
+for(var i = 0; i < num_top; i++) {
+  vertexes_top[i] = new point2D(getRandomArbitrary(-W2, W2), H2);
+}
+// Sort the vertexes
+vertexes_top = vertexes_top.sort(function(a, b) { return a.x - b.x; });
+// Add in all of the top triangles
+var prev_top = undefined;
+for(var i = 0; i < num_top; i++) {
+  var vertex = vertexes_top[i];
+  // If this is the first run
+  if(i == 0) { drawTriangle(center, vertex, new point2D(-W2, H2), escape_top)} 
+  // If this is the last run
+  else if(i == (num_top - 1)) { drawTriangle(center, prev_top, new point2D(W2, H2), escape_top);}
+  // If this is a middle run
+  else { drawTriangle(vertex, prev_top, center, escape_top); }
+  prev_top = vertex; 
+}
+
+
+// Right
+const escape_right = new point2D(1, 0);
+var num_right = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
+var vertexes_right = new Array(num_right);
+for(var i = 0; i < num_right; i++) {
+  vertexes_right[i] = new point2D(W2, getRandomArbitrary(-H2, H2));
+}
+// Sort the vertexes
+vertexes_right.sort(function(a, b) { return a.y - b.y; });
+// Add in all of the right triangles
+var prev_right = undefined;
+for(var i = 0; i < num_right; i++) {
+  var vertex = vertexes_right[i];
+  // If this is the first run
+  if(i == 0) { drawTriangle(center, vertex, new point2D(W2, -H2), escape_right);} 
+  // If this is the last run
+  else if(i == (num_right - 1)) { drawTriangle(center, prev_right, new point2D(W2, H2), escape_right);}
+  // If this is a middle run
+  else { drawTriangle(center, vertex, prev_right, escape_right); }
+  prev_right = vertex; 
+}
+
+
+// Bottom
+const escape_bottom = new point2D(0, -1);
+var num_bottom = getRandomArbitraryInt(2, Math.ceil((NUMBER_OF_PIECES / 3)));
+var vertexes_bottom = new Array(num_bottom);
+// Add in all of the vertexs for bottom
+for(var i = 0; i < num_bottom; i++) {
+  vertexes_bottom[i] = new point2D(getRandomArbitrary(-W2, W2), -H2);
+}
+// Sort the vertexes
+vertexes_bottom.sort(function(a, b) { return a.x - b.x; });
+// Add in all of the bottom triangles
+var prev_bottom = undefined;
+for(var i = 0; i < num_bottom; i++) {
+  var vertex = vertexes_bottom[i];
+  // If this is the first run
+  if(i == 0) { drawTriangle(new point2D(-W2, -H2), vertex, center, escape_bottom);} 
+  // If this is the last run
+  else if(i == (num_bottom - 1)) { drawTriangle(new point2D(W2, -H2), prev_bottom, center, escape_bottom);}
+  // If this is a middle run
+  else { drawTriangle(vertex, prev_bottom, center, escape_bottom); }
+  prev_bottom = vertex; 
+}
+
+// Left
+const escape_left = new point2D(-1, 0);
+var num_left = Math.max(2, NUMBER_OF_PIECES - (num_top + num_right + num_bottom));
+var vertexes_left = new Array(num_left);
+// Add in all of the vertexs for left
+for(var i = 0; i < num_left; i++) {
+  vertexes_left[i] = new point2D(-W2, getRandomArbitrary(-H2, H2));
+}
+// Sort the vertexes
+vertexes_left.sort(function(a, b) { return a.y - b.y; });
+// Add in all of the left triangles
+var prev_left = undefined;
+for(var i = 0; i < num_left; i++) {
+  var vertex = vertexes_left[i];
+  // If this is the first run
+  if(i == 0) { drawTriangle(new point2D(-W2, -H2), vertex, center, escape_left);} 
+  // If this is the last run
+  else if(i == (num_left - 1)) { drawTriangle(new point2D(-W2, H2), prev_left, center, escape_left);}
+  // If this is a middle run
+  else { drawTriangle(vertex, prev_left, center, escape_left); }
+  prev_left = vertex; 
+}
+
+// Make all pieces draggable
+var draggleObj = [];
+puzzle_pieces.forEach( n => {
+  draggleObj.push(n.mesh);
+});
+var controls = new DragControls( draggleObj, camera, renderer.domElement );
+//controls.addEventListener( 'dragstart', dragStart );
+controls.addEventListener( 'dragend', dragEnd );
+controls.addEventListener( 'drag', drag );
+
+
+// In our drag function we want to determine if a person moved a piece into its correct position, if they did then we want to set its to locked.
+function drag(event) {
+  // Find the puzzle piece we are on.
+  var pieceDrag = puzzle_pieces.find(m => m.mesh.id == event.object.id);
+  // If the piece wasn't found.
+  if(pieceDrag == null || pieceDrag == undefined) { console.log("Undefined piece found when moving"); return; }
+
+  var inside = isWithinPoints(pieceDrag, event.object);
+
+  if(inside) {
+      
+      // Assign piece's inPlaced value to true
+      pieceDrag.inPlace = true;
+
+      // Lock into position HERE
+      pieceDrag.mesh.position.x = pieceDrag.starting_X;
+      pieceDrag.mesh.position.x = pieceDrag.starting_Y;
+
+      lockPuzzlePieces();
+  }
+
+}
+
+function dragEnd(event) {
+  // We have this here because if a piece ends up in a place that is not the locked position, we want to add it back to draggable objects
+  var pieceDragEnd = puzzle_pieces.find(m => m.mesh.id == event.object.id);
+
+  // If the piece wasn't found.
+  if(pieceDragEnd == null || pieceDragEnd == undefined) { console.log("Undefined piece found when moving"); return; }
+
+  var inside = isWithinPoints(pieceDragEnd, event.object);
+
+  // If the piece are not inside the bounding points, then assign its inPlace attribute to true and push it onto draggableObjects.
+  if(!inside) {
+    pieceDragEnd.inPlace = false;
+    lockPuzzlePieces();
+  } else {
+    // Assign piece's inPlaced value to true
+    pieceDragEnd.inPlace = true;
+
+    // Lock into position HERE
+    //pieceDragEnd.mesh.position.x =;
+    //pieceDragEnd.mesh.position.x = pieceDragEnd.starting_Y;
+    pieceDragEnd.mesh.position.set(0, 0, 0);
+  }
+
+  // Loop through all pieces to see if the puzzle is completed
+  var completed = true;
+  for(var pieceWin of puzzle_pieces) {
+    if(pieceWin.inPlace == false)
+      completed = false;
+  }
+
+  // Puzzle has been completed
+  if(completed) {
+    runTimer = false;
+
+    console.log("Completed!!!");
+
+    clockReset.start();   
+  }
+}
+
+var clockReset = new THREE.Clock(false);
+
+// Locks in all the puzzle pieces that should be locked in
+function lockPuzzlePieces() {
+  const draggableObjects = controls.getObjects();
+  draggableObjects.length = 0;
+
+  puzzle_pieces.forEach(m => {
+    if(!m.inPlace) {
+      draggableObjects.push(m.mesh);
+    }
+  })
+}
+
+// Determines if a puzzle piece is within the points that it needs to be
+function isWithinPoints(puzzle_piece, object) {
+
+  if(Math.abs(puzzle_piece.starting_X - object.position.x) > SNAP_BOUNDS ||
+      Math.abs(puzzle_piece.starting_Y - object.position.y) > SNAP_BOUNDS)
+        return false;
+  
+  return true;
+}
+
+// This function determines if two bounding boxes are touching
+function intersectsBoundingBox(bb1, bb2) {
+
+    var bb1X = bb1.min.x;
+    var bb1Y = bb1.min.y;
+
+    var bb1XM = bb1.max.x;
+    var bb1YM = bb1.max.y;
+
+    var bb2P1 = new point2D(bb2.min.x, bb2.min.y);
+    var bb2P2 = new point2D(bb2.max.x, bb2.min.y);
+    var bb2P3 = new point2D(bb2.min.x, bb2.max.y);
+    var bb2P4 = new point2D(bb2.max.x, bb2.max.y);
+
+    if(contains(bb1X, bb1Y, bb1XM, bb1YM, bb2P1.x, bb2P1.y) 
+    || contains(bb1X, bb1Y, bb1XM, bb1YM, bb2P2.x, bb2P2.y) 
+    || contains(bb1X, bb1Y, bb1XM, bb1YM, bb2P3.x, bb2P3.y) 
+    || contains(bb1X, bb1Y, bb1XM, bb1YM, bb2P4.x, bb2P4.y)) {
+      return true;
+    }
+
+    function contains(x1, y1, x2, y2, x, y)
+    {
+      //console.log(`${x1} ${y1} ${x2} ${y2} ${x} ${y}`);
+      if (x > x1 && x < x2 && y > y1 && y < y2)
+          return true;
+      return false;
+    }
+
+    return false;
+
+}
+
+var runTimer = true;
+var timer = document.createElement('div');
+timer.style.position = 'absolute';
+//text2.style.zIndex = 1;    // if you still don't see the label, try uncommenting this
+timer.style.width = 100;
+timer.style.height = 100;
+timer.innerHTML = "0:0:0";
+timer.style.top = 10 + 'px';
+timer.style.left = 10 + 'px';
+timer.style.fontSize = 3 + 'rem';
+document.body.appendChild(timer);
+
+function drawTime() {
+
+  // If the timer is off, return.
+  if(!runTimer) return;
+
+  var s = Math.floor(clock.getElapsedTime());
+
+  var hours = Math.floor(s / 3600);
+  var minutes = Math.floor((s - (hours * 3600)) / 60);
+  var seconds = Math.floor((s - (hours * 3600) - (minutes * 60)));
+  
+  timer.innerHTML = `${hours}:${minutes}:${seconds}`;
+
+}
+
+function animate() {
+
+  drawTime();
+
+  // If the ending animation has gone for more than 12 seconds, then reset.
+  if(clockReset.getElapsedTime() > 7) {
+    window.location.reload();
+  }
+
+  // We know everything is completed, So scatter blocks
+  if(!runTimer) {
+      puzzle_pieces.forEach(m => {
+        m.mesh.position.set(m.mesh.position.x + getRandomArbitrary(0.005 * m.escape_direction.x, 0.005 * m.escape_direction.y), m.mesh.position.y + getRandomArbitrary(0.005 * m.escape_direction.x, m.escape_direction.y * 0.005), 0);
+      })
+  }
+
+  puzzle_pieces.forEach(m => {
+    m.bounding_box.copy( m.mesh.geometry.boundingBox ).applyMatrix4( m.mesh.matrixWorld );
+   });
+
+   requestAnimationFrame(animate);
+   render();
+}
+
+function animateClean() {
+  puzzle_pieces.forEach(m => {
+    m.bounding_box.copy( m.mesh.geometry.boundingBox ).applyMatrix4( m.mesh.matrixWorld );
+   });
+
+   render();
+}
+
+function render() {
+  renderer.render( scene, camera );
+}
+
+function placePieceRandomly( pieceForBoard ) {
+  var randomX = getRandomArbitrary(-1.5, 1.5);
+  var randomY = getRandomArbitrary(-0.70, 0.70);
+
+  pieceForBoard.mesh.geometry.vertices.verticesNeedUpdate = true;
+
+  pieceForBoard.mesh.position.setX(randomX);
+  pieceForBoard.mesh.position.setY(randomY);
+  pieceForBoard.mesh.updateMatrix();
+  pieceForBoard.mesh.geometry.vertices.verticesNeedUpdate = true;
+
+  pieceForBoard.bounding_box.setFromObject(pieceForBoard.mesh);
+
+  render();
+
+}
+
+// Places the pieces randomly on the board
+puzzle_pieces.forEach(m => {
+
+  // Generate a random piece
+  placePieceRandomly(m);
+  
+  var i = 0;
+  while(true) {
+
+    if((!intersectsBoundingBox(outlineBoundingBox, m.bounding_box) && !intersectsAnyPiecesOfPuzzle(m)) || i++ == 100) {
+        break;
+    } else {
+      placePieceRandomly(m);
+    }
+  }
+
+});
+
+// Determine if a piece is colliding with another piece on the plane.
+function intersectsAnyPiecesOfPuzzle( piece ) {
+    for(var p of puzzle_pieces.filter(m => m.mesh.id != piece.mesh.id)) {
+      if(intersectsBoundingBox(p.bounding_box, piece.bounding_box)) {
+        return true;
+      }
+    }
+
+    return false
+}
+
+
+animate();
+
+// Drawing the Stopwatch
+
+
+</script>
+
+</body>
+</html>
