@@ -1,0 +1,126 @@
+<html>
+<head>
+    <title>Three.js Framework Example</title>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<script>
+
+</script>
+
+<script type="module">
+
+// Objects & Functions
+// Gets a random number
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomArbitrary(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// Gets a random integer
+// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomArbitraryInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Start of Javascript code
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
+import { DragControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls'
+import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls'
+
+// Creating Scene and Camera
+var scene = new THREE.Scene();
+
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.z = 5;  // Try moving this around!
+camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+scene.add( camera );
+
+// Renderer 
+
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+//renderer.setClearColor( 0xffffff, 1 );
+renderer.setClearColor( new THREE.Color( 'black' ), 1 );
+// If you want this to span the window, instead of using the myCanvas object, use the window object
+renderer.setPixelRatio(window.devicePixelRatio * 1.01);
+renderer.setSize(window.innerWidth, window.innerHeight * 1);
+
+// Triangle one
+var geom = new THREE.Geometry();
+var v1 = new THREE.Vector3(-0.5, -0.65, 0);
+var v2 = new THREE.Vector3(-0.5,0.5, 0, 0);
+var v3 = new THREE.Vector3(0.25, 0.1, 0);
+var triangle = new THREE.Triangle(v1, v2, v3);
+var normal = triangle.getNormal(geom);
+geom.vertices.push(triangle.a);
+geom.vertices.push(triangle.b);
+geom.vertices.push(triangle.c);
+geom.faces.push(new THREE.Face3(0, 1, 2, normal));
+
+var tri1 = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({color: new THREE.Color('red'), side: THREE.DoubleSide}));
+scene.add(tri1);
+
+// Triangle two
+var geom = new THREE.Geometry();
+var v1 = new THREE.Vector3(0.5, 0.5, 0);
+var v2 = new THREE.Vector3(0.5,-0.75, 0, 0);
+var v3 = new THREE.Vector3(-0.25, -0.1, 0);
+var triangle = new THREE.Triangle(v1, v2, v3);
+var normal = triangle.getNormal(geom);
+geom.vertices.push(triangle.a);
+geom.vertices.push(triangle.b);
+geom.vertices.push(triangle.c);
+geom.faces.push(new THREE.Face3(0, 1, 2, normal));
+
+var tri2 = new THREE.Mesh(geom, new THREE.MeshBasicMaterial(
+    {
+        color: new THREE.Color('green'), 
+        side: THREE.DoubleSide,
+        blending: THREE.CustomBlending,
+        blendEquation: THREE.AddEquation,
+        blendSrc: THREE.SrcAlphaFactor,
+        blendDst:THREE.OneMinusSrcAlphaFactor,
+        depthTest: false,
+}));
+scene.add(tri2);
+
+// Key Pressing
+document.addEventListener('keypress', keypressed );
+
+var scissorTest = false;
+var blending = false;
+function keypressed( event )
+{
+    switch(event.key) {
+        case "s": {
+            renderer.setScissor( 450 , 450 , 0.01 , 0.01 );
+            scissorTest = !scissorTest;
+            renderer.setScissorTest( scissorTest );
+        }; break;
+
+        case "d": {
+
+        }; break;
+    }
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    render();
+}
+
+function render() {
+    renderer.render( scene , camera );
+}
+
+animate();
+
+</script>
+
+</body>
+</html>

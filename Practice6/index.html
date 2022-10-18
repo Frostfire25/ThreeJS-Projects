@@ -1,0 +1,210 @@
+<html>
+<head>
+    <title>Three.js Framework Example</title>
+</head>
+<body>
+
+<canvas id="myCanvas"></canvas>
+
+<script>
+
+</script>
+
+<script type="module">
+
+/**
+ * 1. What transformation(s) is/are represented by the following matrix?
+    2.5 0.0 0.0 1.4 (3.5, 0, 0)
+    0.0 2.0 0.0 0.5 (0, 1, 0)
+    0.0 0.0 1.5 0.6 (0, 0, 0.9)
+    0.0 0.0 0.0 1.0 (0, 0, 0)
+
+    Normalize the vector (4, 2, 4)
+    (4, 2, 4) = sqrt(4^2 + 2^2 + 4^2)
+              = sqrt(16 + 4 + 16)
+              = sqrt(36)
+              = 6
+
+              Answer: (4/6, 2/6, 4/6)
+
+    Find the vector in the same direction as (8, −1, 4) magnitude 3.
+
+
+*/
+
+// Objects & Functions
+// Gets a random number
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomArbitrary(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// Gets a random integer
+// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomArbitraryInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Start of Javascript code
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
+import { DragControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls'
+import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls'
+
+// Creating Scene and Camera
+var scene = new THREE.Scene();
+
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.z = 5;  // Try moving this around!
+camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+scene.add( camera );
+
+// Renderer 
+
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+//renderer.setClearColor( 0xffffff, 1 );
+renderer.setClearColor( new THREE.Color( 'black' ), 1 );
+// If you want this to span the window, instead of using the myCanvas object, use the window object
+renderer.setPixelRatio(window.devicePixelRatio * 1.01);
+renderer.setSize(window.innerWidth, window.innerHeight * 1);
+
+var ballGeomRadius = 1;
+var ballgeom = new THREE.SphereGeometry(0.5, 32, 16);
+var ballmat = new THREE.MeshPhongMaterial( {color: new THREE.Color( 'orange' )} );
+var ball = new THREE.Mesh( ballgeom, ballmat );
+ball.position.set(-1, 0, 0);
+ballgeom.computeFaceNormals();
+ballgeom.computeVertexNormals();
+
+var ballgeom2 = new THREE.SphereGeometry(0.5, 32, 16);
+var ballmat2 = new THREE.MeshPhongMaterial( {color: new THREE.Color( 'yellow' )} );
+var ball2 = new THREE.Mesh( ballgeom2, ballmat2 );
+ball2.position.set(1, 0, 0);
+ballgeom2.computeFaceNormals();
+ballgeom2.computeVertexNormals();
+
+// Generate Further Planets / Stars
+var starGeom = new THREE.SphereGeometry(0.05, 32, 16);
+var starMat = new THREE.MeshPhongMaterial( {color: new THREE.Color( 'white' )} );
+for(var i = 0; i < 100; i++) {
+    var star = new THREE.Mesh( starGeom , starMat );
+    star.position.set(getRandomArbitrary(-12, 12), getRandomArbitrary(-7, 7), -14);
+    scene.add( star );
+} 
+
+// Creating the group for the balls
+var group = new THREE.Group();
+group.add( ball );
+group.add( ball2 );
+
+scene.add( group );
+
+// Light
+var light = new THREE.PointLight(0xffffff);
+light.position.set(0,0,1);
+scene.add(light);
+
+var light2 = new THREE.PointLight(0xffffff);
+light2.position.set(1,1,-1);
+scene.add(light2);
+
+var lightTop = new THREE.PointLight(0xffffff);
+lightTop.position.set(1,1,0);
+scene.add(lightTop);
+// Orbit Controls
+//const orbitControls = new OrbitControls( camera, renderer.domElement );
+//orbitControls.update();
+
+var rPressed = false;
+
+document.addEventListener('keypress', keypressed );
+
+var delta = 0.01;
+
+var cameraX = 0;
+var cameraY = 0;
+
+function keypressed( event )
+{
+    const rotate_speed = 0.01;
+    const ball_geom_radius_change = 0.1;
+
+    switch(event.key) {
+        case "w": {
+            group.rotation.z += -0.01;
+        }; break;
+        case "a": {
+            group.rotation.x += -0.01;
+        }; break;
+        case "s": {
+            group.rotation.z += 0.01;
+        }; break;
+        case "d": {
+            group.rotation.x += 0.01;
+        }; break;
+        case "r": {
+            rPressed = !rPressed
+        }; break;
+        case "=": {
+            ballGeomRadius += ball_geom_radius_change;
+            ball.scale.setScalar(ballGeomRadius);
+
+            if(isColdiding(ball,ball2)) {
+                ballGeomRadius -= ball_geom_radius_change;
+                ball.scale.setScalar(ballGeomRadius);
+            }
+        }; break;
+        case "-": {
+            ballGeomRadius -= ball_geom_radius_change;
+            ball.scale.setScalar(ballGeomRadius);
+
+            if(isColdiding(ball,ball2)) {
+                ballGeomRadius += ball_geom_radius_change;
+                ball.scale.setScalar(ballGeomRadius);
+            }
+        }; break;
+    }		
+}
+
+// Help from Three.js Discussion form
+// https://discourse.threejs.org/t/collisions-two-objects/4125/3 
+function isColdiding(object1, object2) {
+    object1.geometry.computeBoundingSphere(); //not needed if its already calculated
+    object2.geometry.computeBoundingSphere();
+    object1.updateMatrixWorld();
+    object2.updateMatrixWorld();
+  
+    var sphere1 = object1.geometry.boundingSphere.clone();
+    sphere1.applyMatrix4(object1.matrixWorld);
+
+    var sphere2 = object2.geometry.boundingSphere.clone();
+    sphere2.applyMatrix4(object2.matrixWorld);
+
+    return sphere1.intersectsSphere(sphere2);
+}
+
+function animate() {
+
+    if(rPressed) {
+        group.rotation.y += 0.01;
+    }
+
+    requestAnimationFrame(animate);
+    render();
+}
+
+function render() {
+
+    camera.lookAt( cameraX , cameraY , 0 );
+
+    renderer.render( scene , camera );
+}
+
+animate();
+
+</script>
+
+</body>
+</html>

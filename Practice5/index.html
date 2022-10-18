@@ -6,6 +6,10 @@
 
 <canvas id="myCanvas"></canvas>
 
+<script>
+
+</script>
+
 <script type="module">
 
 // Start of Javascript code
@@ -31,18 +35,51 @@ renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
 renderer.setPixelRatio(window.devicePixelRatio * 1.01);
 renderer.setSize(window.innerWidth, window.innerHeight * 1);
 
+// Creating Fragment Sharder
+// Used help from https://dev.to/maniflames/creating-a-custom-shader-in-threejs-3bhi
+function fragmentShader() {
+    return `
+      uniform vec3 colorA; 
+      uniform vec3 colorB; 
+      uniform vec3 colorC;
+      varying vec3 vUv;
+
+      void main() {
+        gl_FragColor = vec4(mix(colorA, colorB, colorC), 1.0);
+      }
+  `
+}
+
+ let uniforms = {
+    colorB: {type: 'vec3', value: new THREE.Color( Math.random() * 0xffffff )},
+    colorA: {type: 'vec3', value: new THREE.Color( Math.random() * 0xffffff )},
+    colorC: {type: 'vec3', value: new THREE.Color( Math.random() * 0xffffff )}
+ }
+
+
 // Create Tetrahedron Geometries
 var geom1 = new THREE.TetrahedronGeometry(0.5, 0);
-var mat1 = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'black' )} );
+var mat1 = new THREE.ShaderMaterial( {
+    uniforms: uniforms,
+    fragmentShader: fragmentShader()
+});
 var tetrahedron1 = new THREE.Mesh( geom1, mat1 );
 tetrahedron1.position.set(-0.75, 0.75, 0 );
 scene.add(tetrahedron1);
 
 var geom2 = new THREE.TetrahedronGeometry(0.5, 0);
-var mat2 = new THREE.MeshBasicMaterial( {color: new THREE.Color( 'pink' )} );
+var mat2 = new THREE.ShaderMaterial( {
+    uniforms: uniforms,
+    fragmentShader: fragmentShader()
+});
 var tetrahedron2 = new THREE.Mesh( geom2, mat2 );
 tetrahedron2.position.set(0.75, -0.75, 0 );
 scene.add(tetrahedron2);
+
+var ballgeom = new THREE.SphereGeometry(0.5, 32, 16);
+var ballmat = new THREE.MeshPhongMaterial( {color: new THREE.Color( 'red' )} );
+var ball = new THREE.Mesh( ballgeom, ballmat );
+scene.add( ball );
 
 // Light
 var light = new THREE.PointLight(0xffffff);
@@ -54,45 +91,61 @@ scene.add(light);
 //orbitControls.update();
 
 var tPressed = false;
+var rPressed = false;
+
+document.addEventListener('keypress', keypressed );
+
+var delta = 0.01;
+
+var cameraX = 0;
+var cameraY = 0;
+
+function keypressed( event )
+{
+    const rotate_speed = 0.01;
+
+    switch(event.key) {
+        case "w": {
+            cameraX -= rotate_speed;
+        }; break;
+        case "a": {
+            cameraY -= rotate_speed;
+        }; break;
+        case "s": {
+            cameraX += rotate_speed;
+        }; break;
+        case "d": {
+            cameraY += rotate_speed;
+        }; break;
+        case "t": {
+            tPressed = !tPressed;
+        }; break;
+        case "r": {
+            rPressed = !rPressed
+        }; break;
+
+    }		
+}
 
 function animate() {
-
-    if(tPressed) {
-        // Multiply by the PI and rad
-        camera.position.setX()
-    }
-
-    //orbitControls.update();
-
     requestAnimationFrame(animate);
     render();
 }
 
-document.addEventListener('keypress', keypressed );
-
-function keypressed( event )
-{
-    const rotate_speed = 0.1;
-
-    switch(event.key) {
-        case "w": {
-            camera.rotateX( -rotate_speed );
-        }; break;
-        case "a": {
-            camera.rotateY( -rotate_speed );
-        }; break;
-        case "s": {
-            camera.rotateX( rotate_speed );
-        }; break;
-        case "d": {
-            camera.rotateY( rotate_speed );
-        }; break;
-    }		
-}
-
-
 function render() {
-    renderer.render( scene, camera );
+
+    const rotate_speed = 0.01;
+
+    if(tPressed) {
+        camera.position.applyAxisAngle(new THREE.Vector3(1, 0, 0), rotate_speed);
+    }
+    if(rPressed) {
+        camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotate_speed);
+    }
+
+    camera.lookAt( cameraX , cameraY , 0 );
+
+    renderer.render( scene , camera );
 }
 
 animate();

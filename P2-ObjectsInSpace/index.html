@@ -121,7 +121,7 @@ light.shadow.mapSize.width = 1024;  // default 512
 light.shadow.mapSize.height = 1024; // default 512
 light.shadow.camera.near = 2;       // default 0.5
 light.shadow.camera.far = 1500;  
-scene.add(light);
+camera.add(light);
 
     // Create rocks
 //var rock = createRock(2+Math.random()*25, 50, 1000, 300, 300, 400);
@@ -129,31 +129,20 @@ scene.add(light);
 
 generateRocks(camera.position.z);
 
-class Asteroid {
-
-constructor(mesh, velocity) {
-    this.mesh = mesh;
-    this.velocity = velocity;
-}  
-
-}
-
-var asteroids;
+var rocks;
 /**
  * Generates the asteroids based off of where the Z of the camera is.\
  */
 function generateRocks(cameraZ) {
     
-    var numOfRocks = getRandomArbitraryInt(35, 100);
+    var numOfRocks = getRandomArbitraryInt(200, 350);
     rocks = [];
 
     for(var i = 0; i < numOfRocks; i++) {
         var rock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
         rock.velocity = generateRandomVelocity();
         scene.add( rock );
-
-        var asteroid = new Asteroid(rock, rock.velocity);
-        asteroids.push(rock);
+        rocks.push( rock );
     }
 
 }
@@ -178,15 +167,11 @@ function createRock(size, spreadX, maxWidth, maxHeight, minDepth, maxDepth){
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
   `;
-
   const VS = `
-
   void main() {
     gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
   }
-
   `;
-
   var texture = new THREE.ShaderMaterial({
     uniforms: {},
     fragmentShader: FS,
@@ -290,6 +275,7 @@ const instructions = document.getElementById( 'instructions' );
 instructions.addEventListener( 'click', function () {
 
     camControls.lock();
+    moving = true;
 
 } );
 
@@ -297,6 +283,7 @@ camControls.addEventListener( 'lock', function () {
 
     instructions.style.display = 'none';
     blocker.style.display = 'none';
+    moving = false;
 
 } );
 
@@ -304,6 +291,7 @@ camControls.addEventListener( 'unlock', function () {
 
     blocker.style.display = 'block';
     instructions.style.display = '';
+    moving = true;
 
 } );
 
@@ -322,7 +310,7 @@ function animate() {
     var now = Date.now();
     var dt = now - lastTimeStamp;
     lastTimeStamp = now;
-    if(moving)
+    if(true)
         if(tog) {
             moveObject(camera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
             moveObject(rearViewCamera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
@@ -336,12 +324,69 @@ function animate() {
     /**
      * Move the rocks in space
      */
+    //console.log(camera.position);
+
+    var toRemove = [];
+
     rocks.forEach((rock) => {
         moveObject(rock, rock.velocity, dt * multiplier);
+        // Check if any rocks have colided with the camera
+
+        
+        if(isColdiding(camera, rock)) {
+            console.log(true);
+            toRemove.push(rock);
+
+            console.log(camera.position);
+        }
+
     });
+
+    // Removes the rocks when colided
+    toRemove.forEach((rock) => {
+        removeRock(rock);
+    });
+
+   
 
     render();
 }
+
+/**
+ * Got function from https://discourse.threejs.org/t/correctly-remove-mesh-from-scene-and-dispose-material-and-geometry/5448 
+ */
+function removeRock(rock) {
+    // Used help from https://stackoverflow.com/questions/5767325/how-can-i-remove-a-specific-item-from-an-array
+    rocks = rocks.filter(function(item) {
+        return item !== rock
+    });
+    rock.geometry.dispose();
+    rock.material.dispose();
+    scene.remove( rock );
+}
+
+const b = 10;
+// Help from Three.js Discussion form
+// https://discourse.threejs.org/t/collisions-two-objects/4125/3 
+function isColdiding(camera, object) {
+    // Update the boxes for object
+    object.geometry.computeBoundingBox();
+    object.updateMatrixWorld();
+  
+    var cameraBox = new THREE.Box3(
+        new THREE.Vector3(camera.position.x - b, camera.position.y - b, camera.position.z - b),
+        new THREE.Vector3(camera.position.x + b, camera.position.y + b, camera.position.z + b));
+    camera.updateMatrixWorld( true );
+    //console.log(cameraBox);
+    cameraBox.applyMatrix4(camera.matrixWorld);    
+
+    var box = object.geometry.boundingBox.clone();
+    //console.log(box);
+    box.applyMatrix4(object.matrixWorld);
+
+    return cameraBox.intersectsBox(box);
+}
+
 
 document.addEventListener('keypress', keypressed);
 
@@ -354,14 +399,15 @@ function keypressed( event )
          * For testing movement + rendering.
          */
         case "x": {// Starts and stops movement
-            moving = !moving;
+            tog = true;
         }; break;
         case "y": {// Starts and stops movement
-            tog = !tog;
+            tog = false;
         }; break;
         case "z": {// Reverses movement direction
             multiplier *= -1;
         }; break;
+
     }		
 }
 
