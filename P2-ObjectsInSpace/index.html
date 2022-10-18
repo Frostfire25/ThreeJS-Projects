@@ -69,13 +69,9 @@ import { PointerLockControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js
  * Initilization function, creating scene, camera, and objects.
  */
 // Creating Scene and Camera
- var scene = new THREE.Scene();
+var scene = new THREE.Scene();
 //scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0005 );
 
-var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-camera.position.z = 0;  // Try moving this around!
-//camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
-scene.add( camera );
 
 // Renderer 
 
@@ -88,6 +84,33 @@ renderer.setSize(window.innerWidth, window.innerHeight * 1);
 renderer.setClearColor(0x000000);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Adding in the cameras
+const cameraGroup = new THREE.Group();
+
+var startingCameraZ = 0;
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.z = startingCameraZ;  // Try moving this around!
+//camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+cameraGroup.add( camera );
+
+// Main Camera
+var windowWidth = window.innerWidth;
+var windowHeight = window.innerHeight;
+
+var rearViewCamera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+rearViewCamera.position.z = startingCameraZ;
+//camera.rotate.y = 90 * Math.PI / 180
+cameraGroup.add( rearViewCamera );
+scene.add( cameraGroup );
+
+// Automiattically adjusts video based on resize.
+document.body.appendChild( renderer.domElement );
+window.addEventListener( 'resize', function() {
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    renderer.setSize( width, height );
+});
 
 // Light
 var light = new THREE.PointLight( 0xff7f24, 6, 1000 );
@@ -305,7 +328,37 @@ function keypressed( event )
 }
 
 function render() {
+   
+    // Render both cameras.
+    /*
+    const left = Math.floor( windowWidth * 1 );
+    const bottom = Math.floor( windowHeight * 1 );
+    const width = Math.floor( windowWidth * 1 );
+    const height = Math.floor( windowHeight * 1 );
+    renderer.setViewport( left, bottom, width, height );
+    renderer.setScissor( left, bottom, width, height );
+    */
+    renderer.setClearColor(0x000000);
+    renderer.setScissorTest( false );
+    camera.lookAt( scene.position );
+	camera.updateMatrixWorld( true );
     renderer.render( scene, camera );
+    
+    rearViewCamera.rotation.set(0, 0, -1);
+	rearViewCamera.updateMatrixWorld( true );
+    const left2 = Math.floor( windowWidth * 0.30 );
+    const bottom2 = Math.floor( windowHeight * 0.80 );
+    const width2 = Math.floor( windowWidth * 0.40 );
+    const height2 = Math.floor( windowHeight * 0.20 );
+    //renderer.setViewport( left2, bottom2, width2, height2 );
+    renderer.setScissor( left2, bottom2, width2, height2 );
+    renderer.setScissorTest( true );
+    renderer.setClearColor(0x111111);
+    renderer.render( scene, rearViewCamera );
+
+    console.log( scene.position );
+
+
 }
 
 animate();
