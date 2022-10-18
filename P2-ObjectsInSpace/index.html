@@ -129,7 +129,16 @@ scene.add(light);
 
 generateRocks(camera.position.z);
 
-var rocks;
+class Asteroid {
+
+constructor(mesh, velocity) {
+    this.mesh = mesh;
+    this.velocity = velocity;
+}  
+
+}
+
+var asteroids;
 /**
  * Generates the asteroids based off of where the Z of the camera is.\
  */
@@ -141,8 +150,10 @@ function generateRocks(cameraZ) {
     for(var i = 0; i < numOfRocks; i++) {
         var rock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
         rock.velocity = generateRandomVelocity();
-        rocks.push(rock);
         scene.add( rock );
+
+        var asteroid = new Asteroid(rock, rock.velocity);
+        asteroids.push(rock);
     }
 
 }
@@ -157,14 +168,41 @@ function createRock(size, spreadX, maxWidth, maxHeight, minDepth, maxDepth){
     v.y += (0-Math.random()*(size/4));
     v.z += (0-Math.random()*(size/4));
   })
+
   var color = '#111111';
   var color = ColorLuminance(color,2+Math.random()*10);
-  var texture = new THREE.MeshStandardMaterial({color:color,
-                                        shading: THREE.FlatShading,
+
+  /*
+  const FS = `
+  void main() {
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+  `;
+
+  const VS = `
+
+  void main() {
+    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  }
+
+  `;
+
+  var texture = new THREE.ShaderMaterial({
+    uniforms: {},
+    fragmentShader: FS,
+    vertexShader: VS,
+    roughness: 0.8,
+    metalness: 1
+  });
+  */
+  
+   var texture = new THREE.MeshStandardMaterial({color:color,
+                                            shading: THREE.FlatShading,
                                             //shininess: 0.5,
                                             roughness: 0.8,
                                             metalness: 1
                                         });
+    
 
   var cube = new THREE.Mesh(geometry, texture);
   cube.castShadow = true;
@@ -244,7 +282,7 @@ function moveObject(obj, newPos, deltaVal) {
  * Camera controls (mouse input)
  * Grabbed from: https://threejs.org/examples/misc_controls_pointerlock.html
  */
-const camControls = new PointerLockControls( camera, document.body );
+const camControls = new PointerLockControls( cameraGroup, document.body );
 
 const blocker = document.getElementById( 'blocker' );
 const instructions = document.getElementById( 'instructions' );
