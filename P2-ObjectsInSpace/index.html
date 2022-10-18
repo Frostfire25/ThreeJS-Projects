@@ -102,6 +102,7 @@ var rearViewCamera = new THREE.PerspectiveCamera( 35, window.innerWidth / window
 rearViewCamera.position.z = startingCameraZ;
 //camera.rotate.y = 90 * Math.PI / 180
 cameraGroup.add( rearViewCamera );
+rearViewCamera.rotation.set(0, 0, -1);
 scene.add( cameraGroup );
 
 // Automiattically adjusts video based on resize.
@@ -158,7 +159,6 @@ function createRock(size, spreadX, maxWidth, maxHeight, minDepth, maxDepth){
   })
   var color = '#111111';
   var color = ColorLuminance(color,2+Math.random()*10);
-  console.log(color);
   var texture = new THREE.MeshStandardMaterial({color:color,
                                         shading: THREE.FlatShading,
                                             //shininess: 0.5,
@@ -176,8 +176,6 @@ function createRock(size, spreadX, maxWidth, maxHeight, minDepth, maxDepth){
   var centeredness = 1-(Math.abs(x)/(maxWidth/2));
   var y = (maxHeight/2-Math.random()*maxHeight)*centeredness;
   var z = /*(maxDepth/2-Math.random()*maxDepth)**/getRandomArbitrary(minDepth, maxDepth) * centeredness * -1;
-  console.log(z);
-  console.log(cube);
   cube.position.set(x,y,z)
   cube.r = {};
   cube.r.x = Math.random() * 0.005;
@@ -287,10 +285,14 @@ function animate() {
     var dt = now - lastTimeStamp;
     lastTimeStamp = now;
     if(moving)
-        if(tog)
+        if(tog) {
             moveObject(camera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
-        else
+            moveObject(rearViewCamera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
+        }
+        else {
             moveObject(camera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
+            moveObject(rearViewCamera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
+        }
     // Note: This moves the camera by an amount proportionate to the elapsed time, not the frame count.
 
     /**
@@ -299,8 +301,6 @@ function animate() {
     rocks.forEach((rock) => {
         moveObject(rock, rock.velocity, dt * multiplier);
     });
-
-    //console.log(camControls.getDirection(targetVector));
 
     render();
 }
@@ -340,11 +340,8 @@ function render() {
     */
     renderer.setClearColor(0x000000);
     renderer.setScissorTest( false );
-    camera.lookAt( scene.position );
-	camera.updateMatrixWorld( true );
     renderer.render( scene, camera );
     
-    rearViewCamera.rotation.set(0, 0, -1);
 	rearViewCamera.updateMatrixWorld( true );
     const left2 = Math.floor( windowWidth * 0.30 );
     const bottom2 = Math.floor( windowHeight * 0.80 );
@@ -356,7 +353,7 @@ function render() {
     renderer.setClearColor(0x111111);
     renderer.render( scene, rearViewCamera );
 
-    console.log( scene.position );
+    //console.log( scene.position );
 
 
 }
