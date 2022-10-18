@@ -206,16 +206,16 @@ function generateRandomVelocity() {
     if(posNeg == 1)
         zVel *= -1;
 
-    return [xVel, yVel, zVel];
+    return new THREE.Vector3(xVel, yVel, zVel);
 }
 
 /**
  * Object movement through space
  */
-function moveObject(obj, newPos) {
-    obj.position.x += newPos[0];
-    obj.position.y += newPos[1];
-    obj.position.z += newPos[2];
+function moveObject(obj, newPos, deltaVal) {
+    obj.position.x += newPos.x * deltaVal;
+    obj.position.y += newPos.y * deltaVal;
+    obj.position.z += newPos.z * deltaVal;
 }
 
 
@@ -252,29 +252,32 @@ var lastTimeStamp = Date.now();
 var moving = false;
 var tog = false;
 var multiplier = 0.2;
+// Fields for camera movement
+var targetVector = new THREE.Vector3();
 function animate() {
     requestAnimationFrame(animate);
 
     /**
      * Move the camera in space
      */
-    // Get the deltaTime
     var now = Date.now();
     var dt = now - lastTimeStamp;
     lastTimeStamp = now;
     if(moving)
         if(tog)
-            moveObject(camera, [0, multiplier / 2 * dt, multiplier / 2 * dt]); // Move the camera in the +z direction by 1/5 of deltaTime
+            moveObject(camera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
         else
-            moveObject(camera, [0, 0, multiplier * dt]); // Move the camera in the +z direction by 1/5 of deltaTime
+            moveObject(camera, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
     // Note: This moves the camera by an amount proportionate to the elapsed time, not the frame count.
 
     /**
      * Move the rocks in space
      */
     rocks.forEach((rock) => {
-        moveObject(rock, rock.velocity);
+        moveObject(rock, rock.velocity, dt * multiplier);
     });
+
+    //console.log(camControls.getDirection(targetVector));
 
     render();
 }
