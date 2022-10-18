@@ -100,22 +100,23 @@ light.shadow.camera.far = 1500;
 scene.add(light);
 
     // Create rocks
-var rock = createRock(2+Math.random()*25, 50, 1000, 300, 300, 400);
-scene.add( rock );
+//var rock = createRock(2+Math.random()*25, 50, 1000, 300, 300, 400);
+//scene.add( rock );
 
 generateRocks(camera.position.z);
 
-
+var rocks;
 /**
  * Generates the asteroids based off of where the Z of the camera is.\
  */
 function generateRocks(cameraZ) {
     
     var numOfRocks = getRandomArbitraryInt(35, 100);
-    var rocks = [];
+    rocks = [];
 
     for(var i = 0; i < numOfRocks; i++) {
         var rock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
+        rock.velocity = generateRandomVelocity();
         rocks.push(rock);
         scene.add( rock );
     }
@@ -185,6 +186,32 @@ function ColorLuminance(hex, lum) {
 }
 
 /**
+ * Generating random velocities for rocks to fly in
+ */
+function generateRandomVelocity() {
+    var velocity = Math.random().toFixed(3) * 2;
+    var remaining = velocity;
+    var posNeg = Math.round(Math.random()); // One or zero for pos/neg
+    var xVel = Math.round(Math.random() * remaining);
+    remaining -= xVel;
+    if(posNeg == 1)
+        xVel *= -1;
+    var yVel = (Math.random() * remaining).toFixed(3);
+    posNeg = Math.round(Math.random()); // One or zero for pos/neg
+    remaining -= yVel;
+    if(posNeg == 1)
+        yVel *= -1;
+    var zVel = remaining;
+    posNeg = Math.round(Math.random()); // One or zero for pos/neg
+    if(posNeg == 1)
+        zVel *= -1;
+
+    console.log("X: " + xVel + " / Y: " + yVel + " / Z: " + zVel);
+
+    return [xVel, yVel, zVel];
+}
+
+/**
  * Object movement through space
  */
 function moveObject(obj, newPos) {
@@ -243,6 +270,13 @@ function animate() {
         else
             moveObject(camera, [0, 0, multiplier * dt]); // Move the camera in the +z direction by 1/5 of deltaTime
     // Note: This moves the camera by an amount proportionate to the elapsed time, not the frame count.
+
+    /**
+     * Move the rocks in space
+     */
+    rocks.forEach((rock) => {
+        moveObject(rock, rock.velocity);
+    });
 
     render();
 }
