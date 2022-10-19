@@ -144,12 +144,12 @@ var rocksLeft;
  */
 function generateRocks(cameraZ) {
     
-    var numOfRocks = getRandomArbitraryInt(20, 30);
+    var numOfRocks = getRandomArbitraryInt(250, 300);
     rocks = [];
     rocksLeft = numOfRocks;
 
     for(var i = 0; i < numOfRocks; i++) {
-        var rock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
+        var rock = createRock(2+Math.random()*15/*, 1000, 1000, 300, 500, 900*/);
         rock.velocity = generateRandomVelocity();
         scene.add( rock );
         rocks.push( rock );
@@ -160,61 +160,53 @@ function generateRocks(cameraZ) {
 /**
  Function that creates our asteroids, inspired by https://codepen.io/Divyz/pen/VPrZMy
  */
-function createRock(size, spreadX, maxWidth, maxHeight, minDepth, maxDepth){
+function createRock(size/*, spreadX, maxWidth, maxHeight, minDepth, maxDepth*/){
 	var geometry = new THREE.DodecahedronGeometry(size, 1);
     geometry.vertices.forEach(function(v){
-    v.x += (0-Math.random()*(size/4));
-    v.y += (0-Math.random()*(size/4));
-    v.z += (0-Math.random()*(size/4));
-  })
+        v.x += (0-Math.random()*(size/4));
+        v.y += (0-Math.random()*(size/4));
+        v.z += (0-Math.random()*(size/4));
+    });
 
-  var color = '#111111';
-  var color = ColorLuminance(color,2+Math.random()*10);
-
-  /*
-  const FS = `
-  void main() {
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-  `;
-  const VS = `
-  void main() {
-    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-  }
-  `;
-  var texture = new THREE.ShaderMaterial({
-    uniforms: {},
-    fragmentShader: FS,
-    vertexShader: VS,
-    roughness: 0.8,
-    metalness: 1
-  });
-  */
+    var color = '#111111';
+    var color = ColorLuminance(color,2+Math.random()*10);
   
-   var texture = new THREE.MeshStandardMaterial({color:color,
-                                            shading: THREE.FlatShading,
+    var texture = new THREE.MeshStandardMaterial({color:color,
+                                            flatShading: THREE.FlatShading,
                                             //shininess: 0.5,
                                             roughness: 0.8,
                                             metalness: 1
                                         });
     
 
-  var cube = new THREE.Mesh(geometry, texture);
-  cube.castShadow = true;
-  cube.receiveShadow = true;
-  cube.scale.set(1+Math.random()*0.4,1+Math.random()*0.8,1+Math.random()*0.4);
-	//cube.rotation.y = Math.PI/4;
-	//cube.rotation.x = Math.PI/4;
-  var x = spreadX/2-Math.random()*spreadX;
-  var centeredness = 1-(Math.abs(x)/(maxWidth/2));
-  var y = (maxHeight/2-Math.random()*maxHeight)*centeredness;
-  var z = /*(maxDepth/2-Math.random()*maxDepth)**/getRandomArbitrary(minDepth, maxDepth) * centeredness * -1;
-  cube.position.set(x,y,z)
-  cube.r = {};
-  cube.r.x = Math.random() * 0.005;
-  cube.r.y = Math.random() * 0.005;
-  cube.r.z = Math.random() * 0.005;
-  return cube;
+    var cube = new THREE.Mesh(geometry, texture);
+    cube.castShadow = true;
+    cube.receiveShadow = true;
+    cube.scale.set(1+Math.random()*0.4,1+Math.random()*0.8,1+Math.random()*0.4);
+    
+    // Generate rock position
+    var x = spaceship.cameraGroup.position.x + 200 + Math.random() * 400 // From spaceship's x; spawn b/w 200-600 units away
+    var posNeg = Math.round(Math.random()); // One or zero for pos/neg
+    if(posNeg == 1) // If it should be negative, place the rock in the -x direction
+        x *= -1;
+    var y = spaceship.cameraGroup.position.y + 200 + Math.random() * 400 // From spaceship's y; spawn b/w 200-600 units away
+    posNeg = Math.round(Math.random());
+    if(posNeg == 1) // If it should be negative, place the rock in the -y direction
+        y *= -1;
+    var z = spaceship.cameraGroup.position.z + 200 + Math.random() * 400 // From spaceship's z; spawn b/w 200-600 units away
+    posNeg = Math.round(Math.random());
+    if(posNeg == 1) // If it should be negative, place the rock in the -z direction
+        z *= -1;
+    
+    // Place the rock in space
+    cube.position.set(x,y,z)
+
+    // Generate the rock's random rotation
+    cube.r = {};
+    cube.r.x = Math.random() * 0.1;
+    cube.r.y = Math.random() * 0.1;
+    cube.r.z = Math.random() * 0.1;
+    return cube;
 };
 
 /**
@@ -331,10 +323,13 @@ function animate() {
 
     rocks.forEach((rock) => {
         moveObject(rock, rock.velocity, dt * multiplier);
+        rock.rotation.x -= rock.r.x;
+        rock.rotation.y -= rock.r.y;
+        rock.rotation.z -= rock.r.z;
 
         if(!isInRange(spaceship.camera, rock)) {// Check if any rocks flew out of viewing distance
             toRemove.push(rock);
-            var newRock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
+            var newRock = createRock(2+Math.random()*15/*, 1000, 1000, 300, 500, 900*/);
             newRock.velocity = generateRandomVelocity();
             scene.add( newRock );
             rocks.push( newRock );            
@@ -400,8 +395,8 @@ function isInRange(camera, object) {
     object.updateMatrixWorld();
   
     var cameraBox = new THREE.Box3(
-        new THREE.Vector3(camera.position.x - 1000, camera.position.y - 1000, camera.position.z - 1000),
-        new THREE.Vector3(camera.position.x + 1000, camera.position.y + 1000, camera.position.z + 1000)
+        new THREE.Vector3(camera.position.x - 700, camera.position.y - 700, camera.position.z - 700),
+        new THREE.Vector3(camera.position.x + 700, camera.position.y + 700, camera.position.z + 700)
     );
     camera.updateMatrixWorld( true );
     //console.log(cameraBox);
