@@ -100,54 +100,25 @@ var rearViewCamera;
  * Spaceship Object
  */
  function Spaceship() {
-    this.group = new THREE.Group();
     this.cameraGroup = new THREE.Group();
     this.camera;
     this.rearViewCamera;
-    this.hurtBox;
-    this.viewBox;
-    this.rock;
-    
 
     this.init = function() {
         // Initialize cameras
         var startingCameraZ = 0;
         this.camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
         this.camera.position.z = startingCameraZ;
+        this.rearViewCamera.lookAt(camera.position.x, camera.position.y, -1);
 
         this.rearViewCamera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
         this.rearViewCamera.position.z = startingCameraZ;
-        this.rearViewCamera.rotation.set(0, 0, -1);
-        
-
-        // Initialize boxes
-        this.hurtBox = new THREE.Box3(
-            new THREE.Vector3(this.camera.position.x - 10, this.camera.position.y - 10, this.camera.position.z - 10),
-            new THREE.Vector3(this.camera.position.x + 10, this.camera.position.y + 10, this.camera.position.z + 10)
-        );
-        this.viewBox = new THREE.Box3(
-            new THREE.Vector3(this.camera.position.x - 300, this.camera.position.y - 300, this.camera.position.z - 300),
-            new THREE.Vector3(this.camera.position.x + 300, this.camera.position.y + 300, this.camera.position.z + 300)
-        );
+        this.rearViewCamera.lookAt(camera.position.x, camera.position.y, 1);
 
         // Add Cameras to cameraGroup
         this.cameraGroup.add(this.camera);
         this.cameraGroup.add(this.rearViewCamera);
         scene.add(this.cameraGroup);
-        // Add everything to the object group
-        this.group.add(this.camera);
-        this.group.add(this.rearViewCamera);
-        this.group.add(this.hurtBox);
-        this.group.add(this.viewBox);
-        scene.add(this.group);
-
-        // Rock for testing
-        this.rock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
-        this.rock.position.x = 0;
-        this.rock.position.y = 0;
-        this.rock.position.z = 40;
-        this.group.add(this.rock);
-        scene.add(this.rock);
     }
 }
 // Initialize spaceship
