@@ -138,13 +138,15 @@ spaceship.camera.add(light);
 generateRocks(spaceship.camera.position.z);
 
 var rocks;
+var rocksLeft;
 /**
  * Generates the asteroids based off of where the Z of the camera is.\
  */
 function generateRocks(cameraZ) {
     
-    var numOfRocks = getRandomArbitraryInt(200, 350);
+    var numOfRocks = getRandomArbitraryInt(20, 30);
     rocks = [];
+    rocksLeft = numOfRocks;
 
     for(var i = 0; i < numOfRocks; i++) {
         var rock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
@@ -329,14 +331,20 @@ function animate() {
 
     rocks.forEach((rock) => {
         moveObject(rock, rock.velocity, dt * multiplier);
-        // Check if any rocks have colided with the camera
 
-        
-        if(isColliding(spaceship.camera, rock)) {
+        if(!isInRange(spaceship.camera, rock)) {// Check if any rocks flew out of viewing distance
+            toRemove.push(rock);
+            var newRock = createRock(2+Math.random()*15, 1000, 1000, 300, 500, 900);
+            newRock.velocity = generateRandomVelocity();
+            scene.add( newRock );
+            rocks.push( newRock );            
+        }
+        else if(isColliding(spaceship.camera, rock)) {// Check if any rocks have colided with the camera
             console.log(true);
             toRemove.push(rock);
 
             console.log(spaceship.camera.position);
+            console.log("Rocks Left: " + rocks.length);
         }
 
     });
@@ -374,6 +382,26 @@ function isColliding(camera, object) {
     var cameraBox = new THREE.Box3(
         new THREE.Vector3(camera.position.x - 10, camera.position.y - 10, camera.position.z - 10),
         new THREE.Vector3(camera.position.x + 10, camera.position.y + 10, camera.position.z + 10)
+    );
+    camera.updateMatrixWorld( true );
+    //console.log(cameraBox);
+    cameraBox.applyMatrix4(camera.matrixWorld);    
+
+    var box = object.geometry.boundingBox.clone();
+    //console.log(box);
+    box.applyMatrix4(object.matrixWorld);
+
+    return cameraBox.intersectsBox(box);
+}
+
+function isInRange(camera, object) {
+    // Update the boxes for object
+    object.geometry.computeBoundingBox();
+    object.updateMatrixWorld();
+  
+    var cameraBox = new THREE.Box3(
+        new THREE.Vector3(camera.position.x - 1000, camera.position.y - 1000, camera.position.z - 1000),
+        new THREE.Vector3(camera.position.x + 1000, camera.position.y + 1000, camera.position.z + 1000)
     );
     camera.updateMatrixWorld( true );
     //console.log(cameraBox);
