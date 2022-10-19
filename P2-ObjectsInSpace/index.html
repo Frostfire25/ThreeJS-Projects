@@ -92,10 +92,6 @@ window.addEventListener( 'resize', function() {
     renderer.setSize( width, height );
 });
 
-// Set up cameras for later initialization
-var camera;
-var rearViewCamera;
-
 /**
  * Spaceship Object
  */
@@ -418,10 +414,10 @@ function render() {
     renderer.render( scene, spaceship.camera );
     
 	spaceship.rearViewCamera.updateMatrixWorld( true );
-    const left2 = Math.floor( windowWidth * 0.30 );
-    const bottom2 = Math.floor( windowHeight * 0.80 );
-    const width2 = Math.floor( windowWidth * 0.40 );
-    const height2 = Math.floor( windowHeight * 0.20 );
+    const left2 = Math.floor( window.innerWidth * 0.30 );
+    const bottom2 = Math.floor( window.innerHeight * 0.80 );
+    const width2 = Math.floor( window.innerWidth * 0.40 );
+    const height2 = Math.floor( window.innerHeight * 0.20 );
     //renderer.setViewport( left2, bottom2, width2, height2 );
     renderer.setScissor( left2, bottom2, width2, height2 );
     renderer.setScissorTest( true );
