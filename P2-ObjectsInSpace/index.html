@@ -109,11 +109,11 @@ var rearViewCamera;
         var startingCameraZ = 0;
         this.camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
         this.camera.position.z = startingCameraZ;
-        this.rearViewCamera.lookAt(camera.position.x, camera.position.y, -1);
+        this.camera.lookAt(this.camera.position.x, this.camera.position.y, -1);
 
         this.rearViewCamera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
         this.rearViewCamera.position.z = startingCameraZ;
-        this.rearViewCamera.lookAt(camera.position.x, camera.position.y, 1);
+        this.rearViewCamera.lookAt(this.camera.position.x, this.camera.position.y, 1);
 
         // Add Cameras to cameraGroup
         this.cameraGroup.add(this.camera);
@@ -321,7 +321,7 @@ function animate() {
     var now = Date.now();
     var dt = now - lastTimeStamp;
     lastTimeStamp = now;
-    moveObject(spaceship.group, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
+    moveObject(spaceship.cameraGroup, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
     // Note: This moves the spaceship by an amount proportionate to the elapsed time, not the frame count.
 
     /**
@@ -336,7 +336,7 @@ function animate() {
         // Check if any rocks have colided with the camera
 
         
-        if(isColliding(spaceship.hurtBox, rock)) {
+        if(isColliding(spaceship.camera, rock)) {
             console.log(true);
             toRemove.push(rock);
 
@@ -368,7 +368,6 @@ function removeRock(rock) {
     scene.remove( rock );
 }
 
-const b = 10;
 // Help from Three.js Discussion form
 // https://discourse.threejs.org/t/collisions-two-objects/4125/3 
 function isColliding(camera, object) {
@@ -376,18 +375,19 @@ function isColliding(camera, object) {
     object.geometry.computeBoundingBox();
     object.updateMatrixWorld();
   
-    /*var cameraBox = new THREE.Box3(
-        new THREE.Vector3(camera.position.x - b, camera.position.y - b, camera.position.z - b),
-        new THREE.Vector3(camera.position.x + b, camera.position.y + b, camera.position.z + b));
+    var cameraBox = new THREE.Box3(
+        new THREE.Vector3(camera.position.x - 10, camera.position.y - 10, camera.position.z - 10),
+        new THREE.Vector3(camera.position.x + 10, camera.position.y + 10, camera.position.z + 10)
+    );
     camera.updateMatrixWorld( true );
     //console.log(cameraBox);
-    cameraBox.applyMatrix4(camera.matrixWorld);*/
+    cameraBox.applyMatrix4(camera.matrixWorld);    
 
     var box = object.geometry.boundingBox.clone();
     //console.log(box);
     box.applyMatrix4(object.matrixWorld);
 
-    return spaceship.hurtBox.intersectsBox(box);
+    return cameraBox.intersectsBox(box);
 }
 
 
