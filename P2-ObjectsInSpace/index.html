@@ -64,6 +64,21 @@ function getRandomArbitraryInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+/**
+ * Asteroid Blitzer 
+ * By Derek Costello and Alexander Elguezabl
+ * 
+ * Two Cool Features:
+ *  - Added looping game music
+ *  - Asteroids explode on-contact
+ * 
+ * Our resterization technique used is Depth Test on smaller asteroids that are created when a large one is colided with.
+ * Along with scisoring for the rear-view plane.
+ * 
+ * If you have any questions please let us know!
+ * 
+ */
+
 // Start of Javascript code
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
