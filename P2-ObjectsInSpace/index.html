@@ -399,7 +399,7 @@ function animate() {
     var toRemoveRange = [];
 
     rockPieces.forEach((rockPiece) => {
-        moveObject(rockPiece, rockPiece.velocity, dt * 0.005);
+        moveObject(rockPiece, rockPiece.velocity, dt * 0.05);
         rockPiece.rotation.x -= rockPiece.r.x;
         rockPiece.rotation.y -= rockPiece.r.y;
         rockPiece.rotation.z -= rockPiece.r.z;
@@ -476,9 +476,11 @@ function removeRock(rock, isColided) {
 const spread = 20;
 function animateExplosion(rockPosition) {
 
-    for( var i = 0; i < getRandomArbitraryInt(17, 20); i++ ) {
+    for( var i = 0; i < getRandomArbitraryInt(7, 12); i++ ) {
         var rockPiece = createRockPiece( 2 + Math.random()*getRandomArbitraryInt(0, 3), rockPosition );
         rockPiece.velocity = generateRandomVelocity();
+
+        console.log(rockPiece.velocity);
 
         scene.add( rockPiece );
         rockPieces.push( rockPiece );
