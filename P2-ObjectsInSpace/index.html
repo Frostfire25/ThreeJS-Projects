@@ -26,6 +26,11 @@
     </style>
 </head>
 <body>
+
+<audio id="audio" controls autoplay loop hidden >
+    <source src="./media/space-beat.mp3" type="audio/mpeg">
+</audio>
+
 <div id="blocker">
     <div id="instructions">
         <p style="font-size:36px; font-family: Helvetica, Arial, sans-serif; font-weight: bold; color: rgba(226, 226, 226, 0.75);">
@@ -41,6 +46,7 @@
 
 <canvas id="myCanvas"></canvas>
 
+<script>document.documentElement.className="js";var supportsCssVars=function(){var e,t=document.createElement("style");return t.innerHTML="root: { --tmp-var: bold; }",document.head.appendChild(t),e=!!(window.CSS&&window.CSS.supports&&window.CSS.supports("font-weight","var(--tmp-var)")),t.parentNode.removeChild(t),e};supportsCssVars()||alert("Please view this demo in a modern browser that supports CSS Variables.");</script>
 <script type="module">
 
 // Objects & Functions
@@ -71,9 +77,7 @@ import { PointerLockControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js
 var scene = new THREE.Scene();
 //scene.fog = new THREE.FogExp2( 0xefd1b5, 0.0005 );
 
-
 // Renderer 
-
 var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
 //renderer.setClearColor( 0xffffff, 1 );
 //renderer.setClearColor( new THREE.Color( 'aqua' ), 1 );
@@ -138,6 +142,7 @@ spaceship.camera.add(light);
 generateRocks(spaceship.camera.position.z);
 
 var rocks;
+var rockPieces;
 var rocksLeft;
 /**
  * Generates the asteroids based off of where the Z of the camera is.\
@@ -146,6 +151,7 @@ function generateRocks(cameraZ) {
     
     var numOfRocks = getRandomArbitraryInt(250, 300);
     rocks = [];
+    rockPieces = [];
     rocksLeft = numOfRocks;
 
     for(var i = 0; i < numOfRocks; i++) {
@@ -155,6 +161,43 @@ function generateRocks(cameraZ) {
         rocks.push( rock );
     }
 
+}
+
+function createRockPiece( size, rockPosition ) {
+    var geometry = new THREE.DodecahedronGeometry(size, 1);
+    geometry.vertices.forEach(function(v){
+        v.x += (0-Math.random()*(size/4));
+        v.y += (0-Math.random()*(size/4));
+        v.z += (0-Math.random()*(size/4));
+    });
+
+    var color = Math.random() * 0xffffff;
+    var color = ColorLuminance(color,2+Math.random()*10);
+  
+    var texture = new THREE.MeshStandardMaterial({color:color,
+                                            flatShading: THREE.FlatShading,
+                                            //shininess: 0.5,
+                                            roughness: 0.8,
+                                            metalness: 1,
+                                            depthTest: true
+                                        });
+    
+
+    var cube = new THREE.Mesh(geometry, texture);
+    cube.castShadow = true;
+    cube.receiveShadow = true;
+    cube.scale.set(1+Math.random()*0.4,1+Math.random()*0.8,1+Math.random()*0.4);
+    
+    cube.position.set(getRandomArbitrary(rockPosition.x - spread, rockPosition.x + spread), 
+                           getRandomArbitrary(rockPosition.y - spread, rockPosition.y + spread), 
+                           getRandomArbitrary(rockPosition.z - spread, rockPosition.z + spread));
+
+    // Generate the rock's random rotation
+    cube.r = {};
+    cube.r.x = Math.random() * 0.1;
+    cube.r.y = Math.random() * 0.1;
+    cube.r.z = Math.random() * 0.1;
+    return cube;
 }
 
 /**
@@ -175,7 +218,8 @@ function createRock(size/*, spreadX, maxWidth, maxHeight, minDepth, maxDepth*/){
                                             flatShading: THREE.FlatShading,
                                             //shininess: 0.5,
                                             roughness: 0.8,
-                                            metalness: 1
+                                            metalness: 1,
+                                            depthTest: true
                                         });
     
 
@@ -206,7 +250,7 @@ function createRock(size/*, spreadX, maxWidth, maxHeight, minDepth, maxDepth*/){
     var z = spaceship.cameraGroup.position.z + spawnSpace; // From spaceship's z; spawnSpace spaces the astroids 300-600 units away
     
 
-    console.log("X: " + x + " Y: " + y + " Z: " + z);
+    //console.log("X: " + x + " Y: " + y + " Z: " + z);
     // Place the rock in space
     cube.position.set(x,y,z)
 
@@ -282,11 +326,15 @@ const camControls = new PointerLockControls( spaceship.cameraGroup, document.bod
 
 const blocker = document.getElementById( 'blocker' );
 const instructions = document.getElementById( 'instructions' );
+const audio = document.getElementById("audio");
+audio.volume = 0.25;
 
 instructions.addEventListener( 'click', function () {
 
     camControls.lock();
     moving = true;
+    // Adding in game audio
+    audio.play();
 
 } );
 
@@ -295,6 +343,8 @@ camControls.addEventListener( 'lock', function () {
     instructions.style.display = 'none';
     blocker.style.display = 'none';
     moving = false;
+    // Playing audio
+    audio.play();
 
 } );
 
@@ -303,6 +353,8 @@ camControls.addEventListener( 'unlock', function () {
     blocker.style.display = 'block';
     instructions.style.display = '';
     moving = true;
+    // Stopping audio
+    audio.pause();
 
 } );
 
@@ -328,7 +380,20 @@ function animate() {
      */
     //console.log(camera.position);
 
-    var toRemove = [];
+    var toRemoveColided = [];
+    var toRemoveRange = [];
+
+    rockPieces.forEach((rockPiece) => {
+        moveObject(rockPiece, rockPiece.velocity, dt * 0.005);
+        rockPiece.rotation.x -= rockPiece.r.x;
+        rockPiece.rotation.y -= rockPiece.r.y;
+        rockPiece.rotation.z -= rockPiece.r.z;
+
+        // Removes the rock piece if it is out of bounds.
+        if(!isInRange(spaceship.camera, rockPiece)) {// Check if any rocks flew out of viewing distance
+            toRemoveRange.push(rockPiece);         
+        }
+    });
 
     rocks.forEach((rock) => {
         moveObject(rock, rock.velocity, dt * multiplier);
@@ -337,26 +402,35 @@ function animate() {
         rock.rotation.z -= rock.r.z;
 
         if(!isInRange(spaceship.camera, rock)) {// Check if any rocks flew out of viewing distance
-            toRemove.push(rock);
+            toRemoveRange.push(rock);
             var newRock = createRock(2+Math.random()*15/*, 1000, 1000, 300, 500, 900*/);
             newRock.velocity = generateRandomVelocity();
             scene.add( newRock );
             rocks.push( newRock );            
         }
         else if(isColliding(spaceship.camera, rock)) {// Check if any rocks have colided with the camera
-            console.log(true);
-            toRemove.push(rock);
+            //console.log(true);
+            toRemoveColided.push(rock);
 
-            console.log(spaceship.camera.position);
+            //console.log(spaceship.camera.position);
             console.log("Rocks Left: " + rocks.length);
         }
 
     });
 
     // Removes the rocks when colided
-    toRemove.forEach((rock) => {
-        removeRock(rock);
+    toRemoveColided.forEach((rock) => {
+        removeRock(rock, true);
     });
+    // Clears the rocks to be removed
+    toRemoveColided = [];
+
+    // Removes the rocks when out of range
+    toRemoveRange.forEach((rock) => {
+        removeRock(rock, false);
+    });
+    // Clears the rocks to be removed
+    toRemoveRange = [];
 
    
 
@@ -366,14 +440,34 @@ function animate() {
 /**
  * Got function from https://discourse.threejs.org/t/correctly-remove-mesh-from-scene-and-dispose-material-and-geometry/5448 
  */
-function removeRock(rock) {
+function removeRock(rock, isColided) {
     // Used help from https://stackoverflow.com/questions/5767325/how-can-i-remove-a-specific-item-from-an-array
     rocks = rocks.filter(function(item) {
         return item !== rock
     });
+
+
+    // Animate mini-rocks
+    if(isColided) {
+        console.log(rock.position);
+        animateExplosion(rock.position);
+    }
+
     rock.geometry.dispose();
     rock.material.dispose();
     scene.remove( rock );
+}
+
+const spread = 20;
+function animateExplosion(rockPosition) {
+
+    for( var i = 0; i < getRandomArbitraryInt(17, 20); i++ ) {
+        var rockPiece = createRockPiece( 2 + Math.random()*getRandomArbitraryInt(0, 3), rockPosition );
+        rockPiece.velocity = generateRandomVelocity();
+
+        scene.add( rockPiece );
+        rockPieces.push( rockPiece );
+    }
 }
 
 // Help from Three.js Discussion form
