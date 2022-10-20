@@ -71,6 +71,7 @@ function getRandomArbitraryInt(min, max) {
  * Two Cool Features:
  *  - Added looping game music
  *  - Asteroids explode on-contact
+ *  - Asteroids have a small texture
  * 
  * Our resterization technique used is Depth Test on smaller asteroids that are created when a large one is colided with.
  * Along with scisoring for the rear-view plane.
@@ -178,6 +179,8 @@ function generateRocks(cameraZ) {
 
 }
 
+var asteroidTexture = new THREE.TextureLoader().load('./media/asteroid_textures2.png');
+
 function createRockPiece( size, rockPosition ) {
     var geometry = new THREE.DodecahedronGeometry(size, 1);
     geometry.vertices.forEach(function(v){
@@ -194,7 +197,8 @@ function createRockPiece( size, rockPosition ) {
                                             //shininess: 0.5,
                                             roughness: 0.8,
                                             metalness: 1,
-                                            depthTest: true
+                                            depthTest: true,
+                                            map: asteroidTexture
                                         });
     
 
@@ -229,12 +233,14 @@ function createRock(size/*, spreadX, maxWidth, maxHeight, minDepth, maxDepth*/){
     var color = '#111111';
     var color = ColorLuminance(color,2+Math.random()*10);
   
+
     var texture = new THREE.MeshStandardMaterial({color:color,
                                             flatShading: THREE.FlatShading,
                                             //shininess: 0.5,
                                             roughness: 0.8,
                                             metalness: 1,
-                                            depthTest: true
+                                            depthTest: true,
+                                            map: asteroidTexture
                                         });
     
 
