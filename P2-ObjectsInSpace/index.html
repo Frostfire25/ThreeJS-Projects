@@ -68,6 +68,8 @@ function getRandomArbitraryInt(min, max) {
  * Asteroid Blitzer 
  * By Derek Costello and Alexander Elguezabl
  * 
+ * Please host a server to run the project, we are hosting textures.
+ * 
  * Two Cool Features:
  *  - Added looping game music
  *  - Asteroids explode on-contact
@@ -179,7 +181,8 @@ function generateRocks(cameraZ) {
 
 }
 
-var asteroidTexture = new THREE.TextureLoader().load('./media/asteroid_textures2.png');
+var asteroidTexture = new THREE.TextureLoader().load('./media/asteroids_texture3.png');
+console.log(asteroidTexture);
 
 function createRockPiece( size, rockPosition ) {
     var geometry = new THREE.DodecahedronGeometry(size, 1);
