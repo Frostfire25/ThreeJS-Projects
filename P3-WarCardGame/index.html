@@ -3,50 +3,14 @@
     <title>(Project 3) War Card Game</title>
     <!--"Blocker" Code Grabbed from: https://threejs.org/examples/misc_controls_pointerlock.html -->
     <style>
-        #blocker {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        #instructions {
-            width: 100%;
-            height: 100%;
-
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-
-            text-align: center;
-            font-size: 14px;
-            cursor: pointer;
-        }
+     
     </style>
 </head>
 <body>
 
-<audio id="audio" controls autoplay loop hidden >
-    <source src="./media/space-beat.mp3" type="audio/mpeg">
-</audio>
-
-<div id="blocker">
-    <div id="instructions">
-        <p style="font-size:36px; font-family: Helvetica, Arial, sans-serif; font-weight: bold; color: rgba(226, 226, 226, 0.75);">
-            Click to play
-        </p>
-        <p style="font-size:16px; font-family: Helvetica, Arial, sans-serif; font-weight: bold; color: rgba(226, 226, 226, 0.75);">
-            MOUSE: Look around<br />
-            ESC: Free Cursor
-        </p>
-    </div>
-</div>
-
 
 <canvas id="myCanvas"></canvas>
 
-<script>document.documentElement.className="js";var supportsCssVars=function(){var e,t=document.createElement("style");return t.innerHTML="root: { --tmp-var: bold; }",document.head.appendChild(t),e=!!(window.CSS&&window.CSS.supports&&window.CSS.supports("font-weight","var(--tmp-var)")),t.parentNode.removeChild(t),e};supportsCssVars()||alert("Please view this demo in a modern browser that supports CSS Variables.");</script>
 <script type="module">
 
 // Objects & Functions
@@ -114,472 +78,97 @@ window.addEventListener( 'resize', function() {
     renderer.setSize( width, height );
 });
 
-/**
- * Spaceship Object
- */
- function Spaceship() {
-    this.cameraGroup = new THREE.Group();
-    this.camera;
-    this.rearViewCamera;
-
-    this.init = function() {
-        // Initialize cameras
-        var startingCameraZ = 0;
-        this.camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-        this.camera.position.z = startingCameraZ;
-        this.camera.lookAt(this.camera.position.x, this.camera.position.y, -1);
-
-        this.rearViewCamera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-        this.rearViewCamera.position.z = startingCameraZ;
-        this.rearViewCamera.lookAt(this.camera.position.x, this.camera.position.y, 1);
-
-        // Add Cameras to cameraGroup
-        this.cameraGroup.add(this.camera);
-        this.cameraGroup.add(this.rearViewCamera);
-        scene.add(this.cameraGroup);
-    }
-}
-// Initialize spaceship
-const spaceship = new Spaceship();
-spaceship.init();
+// Adding a camera
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.z = 20;  // Try moving this around!
+camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+scene.add( camera );
 
 // Light
-var light = new THREE.PointLight( 0xff7f24, 6, 1000 );
-light.position.set( 0, 0, 0 );
-light.castShadow = true;            // default false
-light.shadow.mapSize.width = 1024;  // default 512
-light.shadow.mapSize.height = 1024; // default 512
-light.shadow.camera.near = 2;       // default 0.5
-light.shadow.camera.far = 1500;  
-spaceship.camera.add(light);
+var light = new THREE.AmbientLight( 0x404040, 5 )
+//light.position.set( 0, 0, camera.position.z );
+//light.castShadow = true;            // default false
+//light.shadow.mapSize.width = 1024;  // default 512
+//light.shadow.mapSize.height = 1024; // default 512
+//light.shadow.camera.near = 2;       // default 0.5
+//light.shadow.camera.far = 1500;  
+scene.add( light );
 
-    // Create rocks
-//var rock = createRock(2+Math.random()*25, 50, 1000, 300, 300, 400);
-//scene.add( rock );
 
-generateRocks(spaceship.camera.position.z);
+// Texture loader
+const loader = new THREE.TextureLoader();
+const cardColor = new THREE.Color( 'white' );
 
-var rocks;
-var rockPieces;
-var rocksLeft;
-/**
- * Generates the asteroids based off of where the Z of the camera is.\
- */
-function generateRocks(cameraZ) {
-    
-    var numOfRocks = getRandomArbitraryInt(250, 300);
-    rocks = [];
-    rockPieces = [];
-    rocksLeft = numOfRocks;
+// Card object class
+function Card( name, filename, value, suit ) {
 
-    for(var i = 0; i < numOfRocks; i++) {
-        var rock = createRock(2+Math.random()*15/*, 1000, 1000, 300, 500, 900*/);
-        rock.velocity = generateRandomVelocity();
-        scene.add( rock );
-        rocks.push( rock );
-    }
+    this.name = name;
+    this.fileName = filename;
+    this.value = value;
+    this.suit = suit;
 
-}
-
-var asteroidTexture = new THREE.TextureLoader().load('./media/asteroids_texture3.png');
-console.log(asteroidTexture);
-
-function createRockPiece( size, rockPosition ) {
-    var geometry = new THREE.DodecahedronGeometry(size, 1);
-    geometry.vertices.forEach(function(v){
-        v.x += (0-Math.random()*(size/4));
-        v.y += (0-Math.random()*(size/4));
-        v.z += (0-Math.random()*(size/4));
-    });
-
-    var color = Math.random() * 0xffffff;
-    var color = ColorLuminance(color,2+Math.random()*10);
-  
-    var texture = new THREE.MeshStandardMaterial({color:color,
-                                            flatShading: THREE.FlatShading,
-                                            //shininess: 0.5,
-                                            roughness: 0.8,
-                                            metalness: 1,
-                                            depthTest: true,
-                                            map: asteroidTexture
+    this.init = function() {
+        
+        this.geometry = new THREE.BoxGeometry( 0.1, 7, 3 );
+        this.texture = new THREE.MeshStandardMaterial({
+                                            color: cardColor,
+                                            map: loader.load(this.fileName)
                                         });
-    
-
-    var cube = new THREE.Mesh(geometry, texture);
-    cube.castShadow = true;
-    cube.receiveShadow = true;
-    cube.scale.set(1+Math.random()*0.4,1+Math.random()*0.8,1+Math.random()*0.4);
-    
-    cube.position.set(getRandomArbitrary(rockPosition.x - spread, rockPosition.x + spread), 
-                           getRandomArbitrary(rockPosition.y - spread, rockPosition.y + spread), 
-                           getRandomArbitrary(rockPosition.z - spread, rockPosition.z + spread));
-
-    // Generate the rock's random rotation
-    cube.r = {};
-    cube.r.x = Math.random() * 0.1;
-    cube.r.y = Math.random() * 0.1;
-    cube.r.z = Math.random() * 0.1;
-    return cube;
-}
-
-/**
- Function that creates our asteroids, inspired by https://codepen.io/Divyz/pen/VPrZMy
- */
-function createRock(size/*, spreadX, maxWidth, maxHeight, minDepth, maxDepth*/){
-	var geometry = new THREE.DodecahedronGeometry(size, 1);
-    geometry.vertices.forEach(function(v){
-        v.x += (0-Math.random()*(size/4));
-        v.y += (0-Math.random()*(size/4));
-        v.z += (0-Math.random()*(size/4));
-    });
-
-    var color = '#111111';
-    var color = ColorLuminance(color,2+Math.random()*10);
-  
-
-    var texture = new THREE.MeshStandardMaterial({color:color,
-                                            flatShading: THREE.FlatShading,
-                                            //shininess: 0.5,
-                                            roughness: 0.8,
-                                            metalness: 1,
-                                            depthTest: true,
-                                            map: asteroidTexture
-                                        });
-    
-
-    var cube = new THREE.Mesh(geometry, texture);
-    cube.castShadow = true;
-    cube.receiveShadow = true;
-    cube.scale.set(1+Math.random()*0.4,1+Math.random()*0.8,1+Math.random()*0.4);
-    var spawnSpace = 0;
-    
-    // Generate rock position
-    // X:
-    spawnSpace = 300 + Math.random() * 300; // Spawn b/w 300-600 units away
-    var posNeg = Math.round(Math.random()); // One or zero for pos/neg
-    if(posNeg == 1) // If it should be negative, place the rock in the -x direction
-        spawnSpace *= -1;
-    // Y:
-    var x = spaceship.cameraGroup.position.x + spawnSpace; // From spaceship's x; spawnSpace spaces the astroids 300-600 units away
-    spawnSpace = 300 + Math.random() * 300; // Spawn b/w 300-600 units away
-    posNeg = Math.round(Math.random());
-    if(posNeg == 1) // If it should be negative, place the rock in the -y direction
-        spawnSpace *= -1;
-    var y = spaceship.cameraGroup.position.y + spawnSpace; // From spaceship's y; spawnSpace spaces the astroids 300-600 units away
-    // Z:
-    spawnSpace = 300 + Math.random() * 300; // Spawn b/w 300-600 units away
-    posNeg = Math.round(Math.random());
-    if(posNeg == 1) // If it should be negative, place the rock in the -z direction
-        spawnSpace *= -1;
-    var z = spaceship.cameraGroup.position.z + spawnSpace; // From spaceship's z; spawnSpace spaces the astroids 300-600 units away
-    
-
-    //console.log("X: " + x + " Y: " + y + " Z: " + z);
-    // Place the rock in space
-    cube.position.set(x,y,z)
-
-    // Generate the rock's random rotation
-    cube.r = {};
-    cube.r.x = Math.random() * 0.1;
-    cube.r.y = Math.random() * 0.1;
-    cube.r.z = Math.random() * 0.1;
-    return cube;
-};
-
-/**
- * Creates the Color, will probably replace for a fragment shader.
- */
-function ColorLuminance(hex, lum) {
-    // validate hex string
-    hex = String(hex).replace(/[^0-9a-f]/gi, '');
-    if (hex.length < 6) {
-        hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
-    }
-    lum = lum || 0;
-
-    // convert to decimal and change luminosity
-    var rgb = "#", c, i;
-    for (i = 0; i < 3; i++) {
-        c = parseInt(hex.substr(i*2,2), 16);
-        c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
-        rgb += ("00"+c).substr(c.length);
+        this.card = new THREE.Mesh( this.geometry, this.texture ); 
     }
 
-    return rgb;
 }
 
-/**
- * Generating random velocities for rocks to fly in
- */
-function generateRandomVelocity() {
-    var velocity = Math.random().toFixed(3) * 2;
-    var remaining = velocity;
-    var posNeg = Math.round(Math.random()); // One or zero for pos/neg
-    var xVel = Math.round(Math.random() * remaining);
-    remaining -= xVel;
-    if(posNeg == 1)
-        xVel *= -1;
-    var yVel = (Math.random() * remaining).toFixed(3);
-    posNeg = Math.round(Math.random()); // One or zero for pos/neg
-    remaining -= yVel;
-    if(posNeg == 1)
-        yVel *= -1;
-    var zVel = remaining;
-    posNeg = Math.round(Math.random()); // One or zero for pos/neg
-    if(posNeg == 1)
-        zVel *= -1;
+// Init all cards
+var cards = [];
 
-    return new THREE.Vector3(xVel, yVel, zVel);
-}
+cards.push(new Card("2_of_clubs", `./media/cards/2_of_clubs.jpg`, 2, "clubs"));
+cards.push(new Card("2_of_diamonds", `./media/cards/2_of_diamonds.jpg`, 2, "diamonds"));
+cards.push(new Card("2_of_spades", `./media/cards/2_of_spades.jpg`, 2, "spades"));
+cards.push(new Card("2_of_hearts", `./media/cards/2_of_hearts.jpg`, 2, "hearts"));
 
-/**
- * Object movement through space
- */
-function moveObject(obj, newPos, deltaVal) {
-    obj.position.x += newPos.x * deltaVal;
-    obj.position.y += newPos.y * deltaVal;
-    obj.position.z += newPos.z * deltaVal;
-}
+cards.push(new Card("3_of_clubs", `./media/cards/3_of_clubs.jpg`, 3, "clubs"));
+cards.push(new Card("3_of_diamonds", `./media/cards/3_of_diamonds.jpg`, 3, "diamonds"));
+cards.push(new Card("3_of_spades", `./media/cards/3_of_spades.jpg`, 3, "spades"));
+cards.push(new Card("3_of_hearts", `./media/cards/3_of_hearts.jpg`, 3, "hearts"));
 
+cards.push(new Card("4_of_clubs", `./media/cards/4_of_clubs.jpg`, 4, "clubs"));
+cards.push(new Card("4_of_diamonds", `./media/cards/4_of_diamonds.jpg`, 4, "diamonds"));
+cards.push(new Card("4_of_spades", `./media/cards/4_of_spades.jpg`, 4, "spades"));
+cards.push(new Card("4_of_hearts", `./media/cards/4_of_hearts.jpg`, 4, "hearts"));
 
-/**
- * Camera controls (mouse input)
- * Grabbed from: https://threejs.org/examples/misc_controls_pointerlock.html
- */
-const camControls = new PointerLockControls( spaceship.cameraGroup, document.body );
+// Initilize all cards
+cards.forEach((card) => {
+    console.log(card);
+    card.init();
+});
 
-const blocker = document.getElementById( 'blocker' );
-const instructions = document.getElementById( 'instructions' );
-const audio = document.getElementById("audio");
-audio.volume = 0.25;
-
-instructions.addEventListener( 'click', function () {
-
-    camControls.lock();
-    moving = true;
-    // Adding in game audio
-    audio.play();
-
-} );
-
-camControls.addEventListener( 'lock', function () {
-
-    instructions.style.display = 'none';
-    blocker.style.display = 'none';
-    moving = false;
-    // Playing audio
-    audio.play();
-
-} );
-
-camControls.addEventListener( 'unlock', function () {
-
-    blocker.style.display = 'block';
-    instructions.style.display = '';
-    moving = true;
-    // Stopping audio
-    audio.pause();
-
-} );
-
-var lastTimeStamp = Date.now();
-var moving = false;
-var multiplier = 0.2;
-// Fields for camera movement
-var targetVector = new THREE.Vector3();
-function animate() {
-    requestAnimationFrame(animate);
-
-    /**
-     * Move the camera in space
-     */
-    var now = Date.now();
-    var dt = now - lastTimeStamp;
-    lastTimeStamp = now;
-    moveObject(spaceship.cameraGroup, camControls.getDirection(targetVector), dt * multiplier); // Move the camera in the +z direction by 1/5 of deltaTime
-    // Note: This moves the spaceship by an amount proportionate to the elapsed time, not the frame count.
-
-    /**
-     * Move the rocks in space
-     */
-    //console.log(camera.position);
-
-    var toRemoveColided = [];
-    var toRemoveRange = [];
-
-    rockPieces.forEach((rockPiece) => {
-        moveObject(rockPiece, rockPiece.velocity, dt * 0.05);
-        rockPiece.rotation.x -= rockPiece.r.x;
-        rockPiece.rotation.y -= rockPiece.r.y;
-        rockPiece.rotation.z -= rockPiece.r.z;
-
-        // Removes the rock piece if it is out of bounds.
-        if(!isInRange(spaceship.camera, rockPiece)) {// Check if any rocks flew out of viewing distance
-            toRemoveRange.push(rockPiece);         
-        }
-    });
-
-    rocks.forEach((rock) => {
-        moveObject(rock, rock.velocity, dt * multiplier);
-        rock.rotation.x -= rock.r.x;
-        rock.rotation.y -= rock.r.y;
-        rock.rotation.z -= rock.r.z;
-
-        if(!isInRange(spaceship.camera, rock)) {// Check if any rocks flew out of viewing distance
-            toRemoveRange.push(rock);
-            var newRock = createRock(2+Math.random()*15/*, 1000, 1000, 300, 500, 900*/);
-            newRock.velocity = generateRandomVelocity();
-            scene.add( newRock );
-            rocks.push( newRock );            
-        }
-        else if(isColliding(spaceship.camera, rock)) {// Check if any rocks have colided with the camera
-            //console.log(true);
-            toRemoveColided.push(rock);
-
-            //console.log(spaceship.camera.position);
-            console.log("Rocks Left: " + rocks.length);
-        }
-
-    });
-
-    // Removes the rocks when colided
-    toRemoveColided.forEach((rock) => {
-        removeRock(rock, true);
-    });
-    // Clears the rocks to be removed
-    toRemoveColided = [];
-
-    // Removes the rocks when out of range
-    toRemoveRange.forEach((rock) => {
-        removeRock(rock, false);
-    });
-    // Clears the rocks to be removed
-    toRemoveRange = [];
-
-   
-
-    render();
-}
-
-/**
- * Got function from https://discourse.threejs.org/t/correctly-remove-mesh-from-scene-and-dispose-material-and-geometry/5448 
- */
-function removeRock(rock, isColided) {
-    // Used help from https://stackoverflow.com/questions/5767325/how-can-i-remove-a-specific-item-from-an-array
-    rocks = rocks.filter(function(item) {
-        return item !== rock
-    });
-
-
-    // Animate mini-rocks
-    if(isColided) {
-        console.log(rock.position);
-        animateExplosion(rock.position);
-    }
-
-    rock.geometry.dispose();
-    rock.material.dispose();
-    scene.remove( rock );
-}
-
-const spread = 20;
-function animateExplosion(rockPosition) {
-
-    for( var i = 0; i < getRandomArbitraryInt(7, 12); i++ ) {
-        var rockPiece = createRockPiece( 2 + Math.random()*getRandomArbitraryInt(0, 3), rockPosition );
-        rockPiece.velocity = generateRandomVelocity();
-
-        console.log(rockPiece.velocity);
-
-        scene.add( rockPiece );
-        rockPieces.push( rockPiece );
-    }
-}
-
-// Help from Three.js Discussion form
-// https://discourse.threejs.org/t/collisions-two-objects/4125/3 
-function isColliding(camera, object) {
-    // Update the boxes for object
-    object.geometry.computeBoundingBox();
-    object.updateMatrixWorld();
-  
-    var cameraBox = new THREE.Box3(
-        new THREE.Vector3(camera.position.x - 10, camera.position.y - 10, camera.position.z - 10),
-        new THREE.Vector3(camera.position.x + 10, camera.position.y + 10, camera.position.z + 10)
-    );
-    camera.updateMatrixWorld( true );
-    //console.log(cameraBox);
-    cameraBox.applyMatrix4(camera.matrixWorld);    
-
-    var box = object.geometry.boundingBox.clone();
-    //console.log(box);
-    box.applyMatrix4(object.matrixWorld);
-
-    return cameraBox.intersectsBox(box);
-}
-
-function isInRange(camera, object) {
-    // Update the boxes for object
-    object.geometry.computeBoundingBox();
-    object.updateMatrixWorld();
-  
-    var cameraBox = new THREE.Box3(
-        new THREE.Vector3(camera.position.x - 700, camera.position.y - 700, camera.position.z - 700),
-        new THREE.Vector3(camera.position.x + 700, camera.position.y + 700, camera.position.z + 700)
-    );
-    camera.updateMatrixWorld( true );
-    //console.log(cameraBox);
-    cameraBox.applyMatrix4(camera.matrixWorld);    
-
-    var box = object.geometry.boundingBox.clone();
-    //console.log(box);
-    box.applyMatrix4(object.matrixWorld);
-
-    return cameraBox.intersectsBox(box);
-}
+cards[0].card.position.set(0, 0, 0);
+console.log(cards[0].card );
+scene.add( cards[0].card );
 
 
 document.addEventListener('keypress', keypressed);
 
 function keypressed( event )
 {
-    
-
     switch(event.key) {
         // Nothing atm
     }		
 }
 
-function render() {
-   
-    // Render both cameras.
-    /*
-    const left = Math.floor( windowWidth * 1 );
-    const bottom = Math.floor( windowHeight * 1 );
-    const width = Math.floor( windowWidth * 1 );
-    const height = Math.floor( windowHeight * 1 );
-    renderer.setViewport( left, bottom, width, height );
-    renderer.setScissor( left, bottom, width, height );
-    */
-    renderer.setClearColor(0x000000);
-    renderer.setScissorTest( false );
-    renderer.render( scene, spaceship.camera );
-    
-	spaceship.rearViewCamera.updateMatrixWorld( true );
-    const left2 = Math.floor( window.innerWidth * 0.30 );
-    const bottom2 = Math.floor( window.innerHeight * 0.80 );
-    const width2 = Math.floor( window.innerWidth * 0.40 );
-    const height2 = Math.floor( window.innerHeight * 0.20 );
-    //renderer.setViewport( left2, bottom2, width2, height2 );
-    renderer.setScissor( left2, bottom2, width2, height2 );
-    renderer.setScissorTest( true );
-    renderer.setClearColor(0x111111);
-    renderer.render( scene, spaceship.rearViewCamera );
+function animate() {
+    cards[0].card.rotation.y += 0.001;
 
-    //console.log( scene.position );
-
-
+    requestAnimationFrame(animate);
+    render();
 }
+
+function render() {
+    renderer.render( scene , camera );
+}
+
+animate();
 
 animate();
 
