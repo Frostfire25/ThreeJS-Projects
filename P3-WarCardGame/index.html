@@ -137,28 +137,81 @@ cards.push(new Card("4_of_diamonds", `./media/cards/4_of_diamonds.jpg`, 4, "diam
 cards.push(new Card("4_of_spades", `./media/cards/4_of_spades.jpg`, 4, "spades"));
 cards.push(new Card("4_of_hearts", `./media/cards/4_of_hearts.jpg`, 4, "hearts"));
 
+cards.push(new Card("5_of_clubs", `./media/cards/5_of_clubs.jpg`, 5, "clubs"));
+cards.push(new Card("5_of_diamonds", `./media/cards/5_of_diamonds.jpg`, 5, "diamonds"));
+cards.push(new Card("5_of_spades", `./media/cards/5_of_spades.jpg`, 5, "spades"));
+cards.push(new Card("5_of_hearts", `./media/cards/5_of_hearts.jpg`, 5, "hearts"));
+
+cards.push(new Card("6_of_clubs", `./media/cards/6_of_clubs.jpg`, 6, "clubs"));
+cards.push(new Card("6_of_diamonds", `./media/cards/6_of_diamonds.jpg`, 6, "diamonds"));
+cards.push(new Card("6_of_spades", `./media/cards/6_of_spades.jpg`, 6, "spades"));
+cards.push(new Card("6_of_hearts", `./media/cards/6_of_hearts.jpg`, 6, "hearts"));
+
+cards.push(new Card("6_of_clubs", `./media/cards/6_of_clubs.jpg`, 6, "clubs"));
+cards.push(new Card("6_of_diamonds", `./media/cards/6_of_diamonds.jpg`, 6, "diamonds"));
+cards.push(new Card("6_of_spades", `./media/cards/6_of_spades.jpg`, 6, "spades"));
+cards.push(new Card("6_of_hearts", `./media/cards/6_of_hearts.jpg`, 6, "hearts"));
+
+cards.push(new Card("7_of_clubs", `./media/cards/7_of_clubs.jpg`, 7, "clubs"));
+cards.push(new Card("7_of_diamonds", `./media/cards/7_of_diamonds.jpg`, 7, "diamonds"));
+cards.push(new Card("7_of_spades", `./media/cards/7_of_spades.jpg`, 7, "spades"));
+cards.push(new Card("7_of_hearts", `./media/cards/7_of_hearts.jpg`, 7, "hearts"));
+
+cards.push(new Card("8_of_clubs", `./media/cards/8_of_clubs.jpg`, 8, "clubs"));
+cards.push(new Card("8_of_diamonds", `./media/cards/8_of_diamonds.jpg`, 8, "diamonds"));
+cards.push(new Card("8_of_spades", `./media/cards/8_of_spades.jpg`, 8, "spades"));
+cards.push(new Card("8_of_hearts", `./media/cards/8_of_hearts.jpg`, 8, "hearts"));
+
+cards.push(new Card("9_of_clubs", `./media/cards/9_of_clubs.jpg`, 9, "clubs"));
+cards.push(new Card("9_of_diamonds", `./media/cards/9_of_diamonds.jpg`, 9, "diamonds"));
+cards.push(new Card("9_of_spades", `./media/cards/9_of_spades.jpg`, 9, "spades"));
+cards.push(new Card("9_of_hearts", `./media/cards/9_of_hearts.jpg`, 9, "hearts"));
+
+cards.push(new Card("jack_of_clubs", `./media/cards/jack_of_clubs.jpg`, 10, "clubs"));
+cards.push(new Card("jack_of_diamonds", `./media/cards/jack_of_diamonds.jpg`, 10, "diamonds"));
+cards.push(new Card("jack_of_spades", `./media/cards/jack_of_spades.jpg`, 10, "spades"));
+cards.push(new Card("jack_of_hearts", `./media/cards/jack_of_hearts.jpg`, 10, "hearts"));
+
+cards.push(new Card("queen_of_clubs", `./media/cards/queen_of_clubs.jpg`, 11, "clubs"));
+cards.push(new Card("queen_of_diamonds", `./media/cards/queen_of_diamonds.jpg`, 11, "diamonds"));
+cards.push(new Card("queen_of_spades", `./media/cards/queen_of_spades.jpg`, 11, "spades"));
+cards.push(new Card("queen_of_hearts", `./media/cards/queen_of_hearts.jpg`, 11, "hearts"));
+
+cards.push(new Card("king_of_clubs", `./media/cards/king_of_clubs.jpg`, 12, "clubs"));
+cards.push(new Card("king_of_diamonds", `./media/cards/king_of_diamonds.jpg`, 12, "diamonds"));
+cards.push(new Card("king_of_spades", `./media/cards/king_of_spades.jpg`, 12, "spades"));
+cards.push(new Card("king_of_hearts", `./media/cards/king_of_hearts.jpg`, 12, "hearts"));
+
+cards.push(new Card("ace_of_clubs", `./media/cards/ace_of_clubs.jpg`, 13, "clubs"));
+cards.push(new Card("ace_of_diamonds", `./media/cards/ace_of_diamonds.jpg`, 13, "diamonds"));
+cards.push(new Card("ace_of_spades", `./media/cards/ace_of_spades.jpg`, 13, "spades"));
+cards.push(new Card("ace_of_hearts", `./media/cards/ace_of_hearts.jpg`, 13, "hearts"));
+
 // Initilize all cards
 cards.forEach((card) => {
-    console.log(card);
     card.init();
 });
 
-cards[0].card.position.set(0, 0, 0);
-console.log(cards[0].card );
 scene.add( cards[0].card );
-
+var priorCard = cards[0].card;
 
 document.addEventListener('keypress', keypressed);
 
 function keypressed( event )
 {
     switch(event.key) {
-        // Nothing atm
+        case "c": {
+            // Changes the card out.
+            scene.remove( priorCard );
+            priorCard = cards[getRandomArbitraryInt(0, cards.length - 1)].card;
+
+            scene.add( priorCard );
+        }
     }		
 }
 
 function animate() {
-    cards[0].card.rotation.y += 0.001;
+    priorCard.rotation.y += 0.0075;
 
     requestAnimationFrame(animate);
     render();
