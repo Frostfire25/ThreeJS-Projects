@@ -124,21 +124,60 @@ function Card( name, filename, value, suit ) {
 // Table object class
 function Table(filename) {
     this.fileName = filename;
+    this.texture;
 
     this.init = function() {
 
-        // Build the table
-        this.geometry = new THREE.BoxGeometry(60, 1, 60);
-        this.texture = new THREE.MeshStandardMaterial({
-                                            map: loader.load(this.fileName)
-                                        });
-        this.mesh = new THREE.Mesh(this.geometry, this.texture);
+        // Build the table top
+        var topGeom = new THREE.BoxGeometry(60, 1, 60);
+        // Texture loading credit: https://threejs.org/examples/webgl_lights_physical.html
+        var topMat = new THREE.MeshStandardMaterial({
+            roughness: 0.8,
+            color: 0xffffff,
+            metalness: 0.2,
+            bumpScale: 0.0005
+        });
+        loader.load( 'three.js-master/examples/textures/hardwood2_diffuse.jpg', function ( map ) {
+
+            map.wrapS = THREE.RepeatWrapping;
+            map.wrapT = THREE.RepeatWrapping;
+            map.anisotropy = 4;
+            map.repeat.set( 3, 3 );
+            map.encoding = THREE.sRGBEncoding;
+            topMat.map = map;
+            topMat.needsUpdate = true;
+
+        } );
+        loader.load( 'three.js-master/examples/textures/hardwood2_bump.jpg', function ( map ) {
+
+            map.wrapS = THREE.RepeatWrapping;
+            map.wrapT = THREE.RepeatWrapping;
+            map.anisotropy = 4;
+            map.repeat.set( 3, 3 );
+            topMat.bumpMap = map;
+            topMat.needsUpdate = true;
+
+        } );
+        loader.load( 'three.js-master/examples/textures/hardwood2_roughness.jpg', function ( map ) {
+
+            map.wrapS = THREE.RepeatWrapping;
+            map.wrapT = THREE.RepeatWrapping;
+            map.anisotropy = 4;
+            map.repeat.set( 3, 3 );
+            topMat.roughnessMap = map;
+            topMat.needsUpdate = true;
+
+        } );
+        this.tableTop = new THREE.Mesh(topGeom, topMat);
+
+        // Build the table legs
+        
 
         // Add to the scene
-        scene.add(this.mesh);
+        scene.add(this.tableTop);
 
         // Move the table to the right location
-        this.mesh.position.y = -5
+        this.tableTop.position.y = -5
     }
 }
 
