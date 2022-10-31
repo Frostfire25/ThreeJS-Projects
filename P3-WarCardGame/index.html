@@ -13,6 +13,8 @@
 
 <script type="module">
 
+import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
+
 // Objects & Functions
 // Gets a random number
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
@@ -80,7 +82,7 @@ window.addEventListener( 'resize', function() {
 
 // Adding a camera
 var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-camera.position.z = 20;  // Try moving this around!
+camera.position.set(50, 50, 50);  // Try moving this around!
 camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
 scene.add( camera );
 
@@ -118,6 +120,30 @@ function Card( name, filename, value, suit ) {
     }
 
 }
+
+// Table object class
+function Table(filename) {
+    this.fileName = filename;
+
+    this.init = function() {
+
+        // Build the table
+        this.geometry = new THREE.BoxGeometry(60, 1, 60);
+        this.texture = new THREE.MeshStandardMaterial({
+                                            map: loader.load(this.fileName)
+                                        });
+        this.mesh = new THREE.Mesh(this.geometry, this.texture);
+
+        // Add to the scene
+        scene.add(this.mesh);
+
+        // Move the table to the right location
+        this.mesh.position.y = -5
+    }
+}
+
+const table = new Table('./media/table/green_felt.jpg');
+table.init();
 
 // Init all cards
 var cards = [];
@@ -192,6 +218,9 @@ cards.forEach((card) => {
     card.init();
 });
 
+const controls = new OrbitControls( camera, renderer.domElement );
+controls.update();
+
 scene.add( cards[0].card );
 var priorCard = cards[0].card;
 
@@ -220,8 +249,6 @@ function animate() {
 function render() {
     renderer.render( scene , camera );
 }
-
-animate();
 
 animate();
 
