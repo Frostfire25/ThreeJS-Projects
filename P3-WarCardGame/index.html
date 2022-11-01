@@ -413,10 +413,13 @@ controls.update();
 
 const cTTY = -4;
 
-
 /**
  * GAME STARTUP LOGIC GOES BELOW HERE 
  */
+
+ // Determines if the game can play, if false then its in the middle of an animation
+ // Starts at false, because we do not want the player to be able to make a move during the shuffle and dealing animations.
+var canPlay = false;
 
 var lastCardY = cTTY;
 // Create the deck in the middle
@@ -428,6 +431,7 @@ cards.forEach( (card) => {
     lastCardY += card.card.geometry.parameters.width * 2;
 });
 
+
 // Create the players, a list of three players
 var players = [ new Player(0, [], [25, cTTY, 10], [15, cTTY, 10]), new Player(1, [], [-25, cTTY, 10], [-15, cTTY, 10]), new Player(2, [], [0 , cTTY, -15], [0, cTTY, -10]) ];
 
@@ -438,9 +442,9 @@ const dealingAnimationOptions = {
     update: function(d) {     
     },
     callback : function(){
+        canPlay = true;
     }};
 
-var isDealing = false;
 async function dealCardsAnimation() {
 
     while( (cards.length - 3) >= 0 ) {
@@ -515,9 +519,6 @@ players.forEach((player) => {
     scene.add(pCard);
 });
 **/
-
-// Determines if the game can play, if false then its in the middle of an animation
-var canPlay = true;
 
 // Options for the drawing cards anination
 const drawingCardAnimationOptions = {
