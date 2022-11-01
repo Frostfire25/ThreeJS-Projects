@@ -528,25 +528,29 @@ const drawingCardAnimationOptions = {
         
     },
     callback : function(){
-        // This will do the who wins OR war animation, will be changed @DEREK and @ALEX
-        canPlay = true;
+        
     }};
 /**
  * Plays a players card
  */
-function playMove() {
+async function playMove() {
 
     // Play a card and do card animation
-    players.forEach((player) => {
+    players.forEach(async (player) => {
         // If the players deck is empty return
         if(player.isEmpty()) return;
 
         var pCard = player.popCard();
 
-        startMoveAnimation(pCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.drawPos[2]), drawingCardAnimationOptions);
+        await startMoveAnimation(pCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.drawPos[2]), drawingCardAnimationOptions);
         pCard.card.rotation.z = (Math.PI/2);
 
-    })
+    });
+
+    setTimeout(() => {
+        // Determine who wins here
+        console.log("Determine winners");
+    }, drawingCardAnimationOptions.duration + 1000);
 }
 
 
