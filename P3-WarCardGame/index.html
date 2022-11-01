@@ -127,6 +127,12 @@ function Player( id, deck, deckPos, drawPos ) {
         return deck.push( card );
     }
 
+    this.addCardBottom = function( card ){
+        deckPos[1] += 0.1 * 2;
+
+        return deck.unshift( card );
+    }
+
     this.popCard = function( card ) {
         
         // Decrease the deckHeight
@@ -137,6 +143,12 @@ function Player( id, deck, deckPos, drawPos ) {
 
     this.isEmpty = function() {
         return deck.length <= 0;
+    }
+
+    this.reformatDeck = function() {  
+        for(var i = 0; i < deck.length; i++) {
+            deck[i].card.position.setY(cTTY + (i * 0.2));
+        }
     }
 
 }
@@ -530,10 +542,22 @@ const drawingCardAnimationOptions = {
     callback : function(){
         
     }};
+// Options for the giving cards to winner cards anination
+const givingCardsToWinnerAnimationOptions = {
+    duration: 1000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+        
+    },
+    callback : function(){
+        canPlay = true;
+    }};
 /**
  * Plays a players card
  */
 async function playMove() {
+
+    var cardsFromPlayers = [];
 
     // Play a card and do card animation
     players.forEach(async (player) => {
@@ -545,12 +569,71 @@ async function playMove() {
         await startMoveAnimation(pCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.drawPos[2]), drawingCardAnimationOptions);
         pCard.card.rotation.z = (Math.PI/2);
 
+        // Sets the card to the player who delt its card
+        pCard.currentPlayer = player.id;
+
+        cardsFromPlayers.push(pCard);
     });
 
-    setTimeout(() => {
+    setTimeout(async () => {
         // Determine who wins here
         console.log("Determine winners");
-    }, drawingCardAnimationOptions.duration + 1000);
+        
+        var highestCard = undefined;
+        var isWar = false;
+        cardsFromPlayers.forEach(async (card) => {
+            if(highestCard == undefined) {
+                highestCard = card;
+            } 
+            else if(highestCard.value < card.value) {
+                highestCard = card;
+            } else if(highestCard.value == card.value) {
+                // This is a TIE of two of the same values, DO A WAR!!!!!!!!!!
+                isWar = true;
+            }
+        });
+
+        if(!isWar) {
+
+            if(highestCard == undefined)
+                throw new Error('A winning card was not found.');
+
+            // Determine winner
+            var pWinner = players[highestCard.currentPlayer];
+
+            cardsFromPlayers.forEach(async (gCard) => {
+                await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+                gCard.card.rotation.z = -(Math.PI/2);
+                pWinner.addCardBottom(gCard);
+            });
+
+        } else {
+            // WAR LOGIC MAY GO HERE;
+            canPlay = true;
+        }
+        // Reformat decks and determine if there is a winner
+        setTimeout(async () => {
+            var playersStillIn = [];
+            players.forEach((player) => {
+                if(!player.isEmpty()) {
+                    player.reformatDeck();
+                    playersStillIn.push(player);
+                }
+                
+                // If only one player is left
+                console.log(playersStillIn);
+
+                if(playersStillIn.length <= 1) {
+                    // WE HAVE A WINNER! THIS IS BROKEN
+                    console.log("Player " + playersStillIn[0].id + " is the winner!");
+                }
+        });
+
+}, givingCardsToWinnerAnimationOptions.duration);
+    }, drawingCardAnimationOptions.duration + 2000);
+
+    
+    
 }
 
 
