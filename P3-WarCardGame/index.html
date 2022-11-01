@@ -435,13 +435,10 @@ var players = [ new Player(0, [], [25, cTTY, 10], [15, cTTY, 10]), new Player(1,
 const dealingAnimationOptions = {
     duration: 5000, 
     easing : TWEEN.Easing.Quadratic.InOut,
-    update: function(d) {
-            
+    update: function(d) {     
     },
     callback : function(){
-
-    }
-    };
+    }};
 
 var isDealing = false;
 async function dealCardsAnimation() {
@@ -519,23 +516,24 @@ players.forEach((player) => {
 });
 **/
 
+// Determines if the game can play, if false then its in the middle of an animation
+var canPlay = true;
 
 // Options for the drawing cards anination
 const drawingCardAnimationOptions = {
     duration: 1000, 
     easing : TWEEN.Easing.Quadratic.InOut,
     update: function(d) {
-            
+        
     },
     callback : function(){
-
-    }
-    };
+        // This will do the who wins OR war animation, will be changed @DEREK and @ALEX
+        canPlay = true;
+    }};
 /**
  * Plays a players card
  */
 function playMove() {
-
 
     // Play a card and do card animation
     players.forEach((player) => {
@@ -557,7 +555,10 @@ function keypressed( event )
 {
     switch(event.key) {
         case "n": {
-            playMove();
+            if(canPlay) {
+                canPlay = false;
+                playMove();
+            }
         }
     }		
 }
