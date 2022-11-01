@@ -12,9 +12,6 @@
 <canvas id="myCanvas"></canvas>
 
 <script type="module">
-
-import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
-
 // Objects & Functions
 // Gets a random number
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
@@ -31,18 +28,10 @@ function getRandomArbitraryInt(min, max) {
 }
 
 /**
- * Asteroid Blitzer 
+ * Game of War
  * By Derek Costello and Alexander Elguezabl
  * 
  * Please host a server to run the project, we are hosting textures.
- * 
- * Two Cool Features:
- *  - Added looping game music
- *  - Asteroids explode on-contact
- *  - Asteroids have a small texture
- * 
- * Our resterization technique used is Depth Test on smaller asteroids that are created when a large one is colided with.
- * Along with scisoring for the rear-view plane.
  * 
  * If you have any questions please let us know!
  * 
@@ -50,9 +39,7 @@ function getRandomArbitraryInt(min, max) {
 
 // Start of Javascript code
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
-import { ConvexGeometry } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/geometries/ConvexGeometry.js";
-import { DragControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls'
-import { PointerLockControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/PointerLockControls'
+import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls'
 
 /**
  * Initilization function, creating scene, camera, and objects.
@@ -96,7 +83,6 @@ var light = new THREE.AmbientLight( 0x404040, 5 )
 //light.shadow.camera.far = 1500;  
 scene.add( light );
 
-
 // Texture loader
 const loader = new THREE.TextureLoader();
 const cardColor = new THREE.Color( 'white' );
@@ -122,67 +108,141 @@ function Card( name, filename, value, suit ) {
 }
 
 // Table object class
-function Table(filename) {
-    this.fileName = filename;
-    this.texture;
+function Table(table_texture, leg_texture, edge_texture) {
+    this.tableTexture = table_texture;
+    this.legTexture = leg_texture;
+    this.edgeTexture = edge_texture;
 
     this.init = function() {
 
-        // Build the table top
-        var topGeom = new THREE.BoxGeometry(60, 1, 60);
-        // Texture loading credit: https://threejs.org/examples/webgl_lights_physical.html
+        //
+        // Table Top:
+        //
+        var topGeom = new THREE.BoxGeometry(80, 1, 60);
         var topMat = new THREE.MeshStandardMaterial({
             roughness: 0.8,
             color: 0xffffff,
             metalness: 0.2,
             bumpScale: 0.0005
         });
-        loader.load( 'three.js-master/examples/textures/hardwood2_diffuse.jpg', function ( map ) {
-
+        loader.load( this.tableTexture, function ( map ) {
             map.wrapS = THREE.RepeatWrapping;
             map.wrapT = THREE.RepeatWrapping;
             map.anisotropy = 4;
-            map.repeat.set( 3, 3 );
+            map.repeat.set( 5, 5 );
             map.encoding = THREE.sRGBEncoding;
             topMat.map = map;
             topMat.needsUpdate = true;
-
-        } );
-        loader.load( 'three.js-master/examples/textures/hardwood2_bump.jpg', function ( map ) {
-
-            map.wrapS = THREE.RepeatWrapping;
-            map.wrapT = THREE.RepeatWrapping;
-            map.anisotropy = 4;
-            map.repeat.set( 3, 3 );
-            topMat.bumpMap = map;
-            topMat.needsUpdate = true;
-
-        } );
-        loader.load( 'three.js-master/examples/textures/hardwood2_roughness.jpg', function ( map ) {
-
-            map.wrapS = THREE.RepeatWrapping;
-            map.wrapT = THREE.RepeatWrapping;
-            map.anisotropy = 4;
-            map.repeat.set( 3, 3 );
-            topMat.roughnessMap = map;
-            topMat.needsUpdate = true;
-
         } );
         this.tableTop = new THREE.Mesh(topGeom, topMat);
 
-        // Build the table legs
-        
+        //
+        // Table Legs:
+        //
+        var legs = [];
+        // Init legs
+        var legGeom = new THREE.CylinderGeometry( 3, 1.5, 30, 4 );
+        var legMat = new THREE.MeshStandardMaterial({
+            roughness: 0.8,
+            color: 0xffffff,
+            metalness: 0.2,
+            bumpScale: 0.0005
+        });
+        loader.load( this.legTexture, function ( map ) {
+            map.wrapS = THREE.RepeatWrapping;
+            map.wrapT = THREE.RepeatWrapping;
+            map.anisotropy = 4;
+            //map.repeat.set( 3, 3 );
+            map.encoding = THREE.sRGBEncoding;
+            legMat.map = map;
+            legMat.needsUpdate = true;
+        } );
+        for(let i = 0; i < 4; i++) {
+            legs[i] = new THREE.Mesh( legGeom, legMat );
+        }
+
+        // Position legs
+        legs[0].position.set(-20, -20, 20);
+        legs[1].position.set(-20, -20, -20);
+        legs[2].position.set(20, -20, 20);
+        legs[3].position.set(20, -20, -20);
+
+        //
+        // Table Edge:
+        //
+
+        // Init edges
+        var edges = [];
+        var edgeGeomLong = new THREE.BoxGeometry(5, 1.75, 75);
+        var edgeGeomShort = new THREE.BoxGeometry(5, 1.75, 60.1);
+        var edgeMat = new THREE.MeshStandardMaterial({
+            roughness: 0.8,
+            color: 0xffffff,
+            metalness: 0.2,
+            bumpScale: 0.0005
+        });
+        loader.load( this.edgeTexture, function ( map ) {
+            map.wrapS = THREE.RepeatWrapping;
+            map.wrapT = THREE.RepeatWrapping;
+            map.anisotropy = 4;
+            map.repeat.set( 1, 5 );
+            map.encoding = THREE.sRGBEncoding;
+            edgeMat.map = map;
+            edgeMat.needsUpdate = true;
+        });
+
+        edges[0] = new THREE.Mesh(edgeGeomLong, edgeMat);
+        edges[1] = new THREE.Mesh(edgeGeomLong, edgeMat);
+        edges[2] = new THREE.Mesh(edgeGeomShort, edgeMat);
+        edges[3] = new THREE.Mesh(edgeGeomShort, edgeMat);
+
+        // Rotate the long edges
+        edges[0].rotation.y += Math.PI / 2;
+        edges[1].rotation.y += Math.PI / 2;
+
+        // Position edges
+        edges[0].position.set(0, -5, 27.52);
+        edges[1].position.set(0, -5, -27.52);
+        edges[2].position.set(40, -5, 0);
+        edges[3].position.set(-40, -5, 0);
 
         // Add to the scene
         scene.add(this.tableTop);
+        for(let i = 0; i < 4; i++) {
+            scene.add(legs[i]);
+            scene.add(edges[i]);
+        }
 
         // Move the table to the right location
         this.tableTop.position.y = -5
     }
 }
 
-const table = new Table('./media/table/green_felt.jpg');
+const table = new Table('./media/table/green_felt.jpg', './media/table/leg.jpg', './media/table/edge.jpg');
 table.init();
+
+// Add Helper for now
+const xDir = new THREE.Vector3( 1, 0, 0 );
+const yDir = new THREE.Vector3( 0, 1, 0 );
+const zDir = new THREE.Vector3( 0, 0, 1 );
+
+//normalize the direction vector (convert to vector of length 1)
+
+const origin = new THREE.Vector3( 0, 0, 0 );
+const length = 10;
+
+const arrowHelperX = new THREE.ArrowHelper( xDir, origin, length, 0xff0000 );
+const arrowHelperY = new THREE.ArrowHelper( yDir, origin, length, 0x00ffff );
+const arrowHelperZ = new THREE.ArrowHelper( zDir, origin, length, 0xff00ff );
+
+arrowHelperX.position.set(0, 10, 0);
+arrowHelperY.position.set(0, 10, 0);
+arrowHelperZ.position.set(0, 10, 0);
+
+scene.add( arrowHelperX );
+scene.add( arrowHelperY );
+scene.add( arrowHelperZ );
+
 
 // Init all cards
 var cards = [];
