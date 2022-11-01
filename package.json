@@ -1,0 +1,23 @@
+{
+  "dependencies": {
+    "@tweenjs/tween.js": "^18.6.4"
+  },
+  "name": "csgraphics",
+  "version": "1.0.0",
+  "main": "index.html",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Frostfire25/ThreeJS-Projects.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Frostfire25/ThreeJS-Projects/issues"
+  },
+  "homepage": "https://github.com/Frostfire25/ThreeJS-Projects#readme",
+  "description": ""
+}

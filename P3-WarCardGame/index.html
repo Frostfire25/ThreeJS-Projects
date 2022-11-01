@@ -61,6 +61,10 @@ function shuffle(array) {
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls'
 import { SceneUtils } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/utils/SceneUtils.js'
+import TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.5.0/dist/tween.esm.js';
+
+const tweenCamera1 = new TWEEN.Tween( {x: -35, y: 85, z: 100, lookAtX: 0, lookAtY: 0, lookAtZ: 0} )
+  .to( {x: 45, y: 66, z: -80, lookAtX: 0, lookAtY: 0, lookAtZ: 0}, 7000 );
 
 /**
  * Initilization function, creating scene, camera, and objects.
@@ -109,10 +113,32 @@ const loader = new THREE.TextureLoader();
 const cardColor = new THREE.Color( 'white' );
 const backOfCardFile = loader.load( `./media/cards/card_back.jpg` );
 
-function Player( id, deck, deckPos ) {
+function Player( id, deck, deckPos, drawPos ) {
     this.id = id;
     this.deck = deck;
     this.deckPos = deckPos;
+    this.drawPos = drawPos;
+
+    this.addCard = function( card ) {
+        // Increase the deckHeight
+
+        deckPos[1] += 0.1 * 2;
+
+        return deck.push( card );
+    }
+
+    this.popCard = function( card ) {
+        
+        // Decrease the deckHeight
+        deckPos[1] -= 0.1 * 2;
+
+        return deck.pop();
+    }
+
+    this.isEmpty = function() {
+        return deck.length <= 0;
+    }
+
 }
 
 // Card object class
@@ -385,14 +411,14 @@ controls.update();
 //scene.add( cards[0].card );
 //var priorCard = cards[0].card;
 
-const cardToTableYSubtraction = 4;
+const cTTY = -4;
 
 
 /**
  * GAME STARTUP LOGIC GOES BELOW HERE 
  */
 
-var lastCardY = -1 * cardToTableYSubtraction;
+var lastCardY = cTTY;
 // Create the deck in the middle
 cards.forEach( (card) => {
     card.card.position.set(0, lastCardY, 0);
@@ -400,12 +426,88 @@ cards.forEach( (card) => {
     scene.add( card.card );
 
     lastCardY += card.card.geometry.parameters.width * 2;
-
-    console.log( card );
 });
 
 // Create the players, a list of three players
-var players = [ new Player(0, [], [25, 0, 10]), new Player(1, [], [-25, 0, 10]), new Player(2, [], [0 , 0, -15]) ];
+var players = [ new Player(0, [], [25, cTTY, 10], [15, cTTY, 10]), new Player(1, [], [-25, cTTY, 10], [-15, cTTY, 10]), new Player(2, [], [0 , cTTY, -15], [0, cTTY, -10]) ];
+
+// Options for the dealing cards anination
+const dealingAnimationOptions = {
+    duration: 5000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+            
+    },
+    callback : function(){
+
+    }
+    };
+
+var isDealing = false;
+async function dealCardsAnimation() {
+
+    while( (cards.length - 3) >= 0 ) {
+        
+        // Pop three cards off of the cards array
+        var card1 = cards.pop();
+        var card2 = cards.pop();
+        var card3 = cards.pop();
+
+        // Assign the cards to the three players
+
+        players[0].addCard( card1 );
+        players[1].addCard( card2 );
+        players[2].addCard( card3 );
+
+        // Send the cards to each players deck
+
+        var vec0 = new THREE.Vector3(players[0].deckPos[0], players[0].deckPos[1], players[0].deckPos[2]); 
+        var vec1 = new THREE.Vector3(players[1].deckPos[0], players[1].deckPos[1], players[1].deckPos[2]); 
+        var vec2 = new THREE.Vector3(players[2].deckPos[0], players[2].deckPos[1], players[2].deckPos[2]); 
+
+        await startMoveAnimation( card1.card.position, vec0, dealingAnimationOptions );
+        await startMoveAnimation( card2.card.position, vec1, dealingAnimationOptions );
+        await startMoveAnimation( card3.card.position, vec2, dealingAnimationOptions );
+    }
+
+    // Remove the cards that are leftover
+    cards.forEach( (card) => {
+        scene.remove(card.card);
+    })
+
+}
+// Deal the cards to each player.
+
+console.log(players);
+
+// Starts the animation process
+animate();
+
+
+async function startMoveAnimation(vectorToAnimate, targetz, options){
+    options = options || {};
+    
+    var to = targetz || THREE.Vector3(),
+        easing = options.easing || TWEEN.Easing.Quadratic.In,
+        duration = options.duration || 1000;
+    
+    var tweenVector3 = new TWEEN.Tween(vectorToAnimate)
+        .to({ x: to.x, y: to.y, z: to.z, }, duration)
+        .easing(easing)
+        .onUpdate(function(d) {
+            if(options.update){ 
+                options.update(d);
+            }
+         })
+        .onComplete(function(){
+          if(options.callback) options.callback();
+        });
+    
+    tweenVector3.start();
+    return tweenVector3;
+}
+
+
 
 /**
 players.forEach((player) => {
@@ -418,20 +520,44 @@ players.forEach((player) => {
 **/
 
 
+// Options for the drawing cards anination
+const drawingCardAnimationOptions = {
+    duration: 1000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+            
+    },
+    callback : function(){
+
+    }
+    };
+/**
+ * Plays a players card
+ */
+function playMove() {
+
+
+    // Play a card and do card animation
+    players.forEach((player) => {
+        // If the players deck is empty return
+        if(player.isEmpty()) return;
+
+        var pCard = player.popCard();
+
+        startMoveAnimation(pCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.drawPos[2]), drawingCardAnimationOptions);
+        pCard.card.rotation.z = (Math.PI/2);
+
+    })
+}
+
+
 document.addEventListener('keypress', keypressed);
 
 function keypressed( event )
 {
     switch(event.key) {
         case "n": {
-            /**
-            // Changes the card out.
-            scene.remove( priorCard );
-            priorCard = cards[getRandomArbitraryInt(0, cards.length - 1)].card;
-
-            scene.add( priorCard );
-            */
-
+            playMove();
         }
     }		
 }
@@ -439,6 +565,8 @@ function keypressed( event )
 function animate() {
     //priorCard.rotation.y += 0.0075;
 
+    // Updates all tweens.
+    TWEEN.update();
     requestAnimationFrame(animate);
     render();
 }
@@ -447,7 +575,11 @@ function render() {
     renderer.render( scene , camera );
 }
 
+// Start the animation loop
 animate();
+
+// Deal the cards.
+dealCardsAnimation();
 
 </script>
 
