@@ -40,6 +40,7 @@ function getRandomArbitraryInt(min, max) {
 // Start of Javascript code
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { OrbitControls } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls'
+import { SceneUtils } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/utils/SceneUtils.js'
 
 /**
  * Initilization function, creating scene, camera, and objects.
@@ -86,6 +87,7 @@ scene.add( light );
 // Texture loader
 const loader = new THREE.TextureLoader();
 const cardColor = new THREE.Color( 'white' );
+const backOfCardFile = loader.load( `./media/cards/card_back.jpg` );
 
 // Card object class
 function Card( name, filename, value, suit ) {
@@ -97,12 +99,43 @@ function Card( name, filename, value, suit ) {
 
     this.init = function() {
         
+        // https://stackoverflow.com/questions/11709760/how-can-i-put-two-different-textures-on-the-front-and-back-of-a-plane
+
         this.geometry = new THREE.BoxGeometry( 0.1, 7, 3 );
-        this.texture = new THREE.MeshStandardMaterial({
+        //this.geometry2 = new THREE.BoxGeometry( 0.1, 7, 3 );
+        //this.geometry2.applyMatrix4( new THREE.Matrix4().makeRotationY( Math.PI ) );
+
+        this.frontTexture = new THREE.MeshBasicMaterial({
                                             color: cardColor,
-                                            map: loader.load(this.fileName)
+                                            map: loader.load(this.fileName),
+                                            side: THREE.FrontSide
                                         });
-        this.card = new THREE.Mesh( this.geometry, this.texture ); 
+
+        this.backTexture = new THREE.MeshBasicMaterial({ 
+                                             color: cardColor,
+                                             map: backOfCardFile,
+                                             side: THREE.BackSide
+                                        });
+
+        this.sideTexture = new THREE.MeshBasicMaterial({ 
+                                             color: cardColor
+                                            });
+
+        //this.card = new THREE.Object3D();
+        //this.card.add( new THREE.Mesh( this.geometry1, this.frontTexture )) ;    
+        //this.card.add( new THREE.Mesh( this.geometry2, this.backTexture )) ;                                    
+                                
+       // this.materials = [ this.backTexture, this.frontTexture ];
+                                                
+       for (var i = 0, len = this.geometry.faces.length; i < len; i++) {
+           var face = this.geometry.faces[i].clone();
+           face.materialIndex = 1;
+           this.geometry.faces.push(face);
+           this.geometry.faceVertexUvs[0].push(this.geometry.faceVertexUvs[0][i].slice(0));
+        }
+
+        //this.card = SceneUtils.createMultiMaterialObject( this.geometry, [ this.frontTexture, this.backTexture ] );
+        this.card = new THREE.Mesh( this.geometry, [ this.frontTexture, this.backTexture, this.sideTexture, this.sideTexture, this.sideTexture, this.sideTexture ] ); 
     }
 
 }
@@ -322,6 +355,10 @@ controls.update();
 
 scene.add( cards[0].card );
 var priorCard = cards[0].card;
+
+
+
+
 
 document.addEventListener('keypress', keypressed);
 
