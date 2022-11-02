@@ -113,11 +113,13 @@ const loader = new THREE.TextureLoader();
 const cardColor = new THREE.Color( 'white' );
 const backOfCardFile = loader.load( `./media/cards/card_back.jpg` );
 
-function Player( id, deck, deckPos, drawPos ) {
+function Player( id, deck, deckPos, drawPos, drawOffset ) {
     this.id = id;
     this.deck = deck;
     this.deckPos = deckPos;
     this.drawPos = drawPos;
+    this.drawOffset = drawOffset;
+    this.offsetPos = []; // Used for placing cards when wars take place
 
     this.addCard = function( card ) {
         // Increase the deckHeight
@@ -445,7 +447,11 @@ cards.forEach( (card) => {
 
 
 // Create the players, a list of three players
-var players = [ new Player(0, [], [25, cTTY, 10], [15, cTTY, 10]), new Player(1, [], [-25, cTTY, 10], [-15, cTTY, 10]), new Player(2, [], [0 , cTTY, -15], [0, cTTY, -10]) ];
+var players = [ 
+    new Player(0, [], [25, cTTY, 10], [15, cTTY, 10], -5),      // Player One
+    new Player(1, [], [-25, cTTY, 10], [-15, cTTY, 10], -5),    // Player Two
+    new Player(2, [], [0 , cTTY, -15], [0, cTTY, -10], 5)       // Player Three
+];
 
 // Options for the dealing cards anination
 const dealingAnimationOptions = {
@@ -558,11 +564,15 @@ const givingCardsToWinnerAnimationOptions = {
 async function playMove() {
 
     var cardsFromPlayers = [];
+    var blankCards = []; // Face-down cards from warring
 
     // Play a card and do card animation
     players.forEach(async (player) => {
         // If the players deck is empty return
         if(player.isEmpty()) return;
+
+        // Reset offsetPosition
+        player.offsetPos = player.drawPos;
 
         var pCard = player.popCard();
 
@@ -578,39 +588,80 @@ async function playMove() {
     setTimeout(async () => {
         // Determine who wins here
         console.log("Determine winners");
-        
-        var highestCard = undefined;
-        var isWar = false;
-        cardsFromPlayers.forEach(async (card) => {
-            if(highestCard == undefined) {
-                highestCard = card;
-            } 
-            else if(highestCard.value < card.value) {
-                highestCard = card;
-            } else if(highestCard.value == card.value) {
-                // This is a TIE of two of the same values, DO A WAR!!!!!!!!!!
-                isWar = true;
-            }
-        });
 
-        if(!isWar) {
+        var result = checkOutcome(cardsFromPlayers);
 
-            if(highestCard == undefined)
-                throw new Error('A winning card was not found.');
+        var highestCard = result[0];
+        var isWar = result[1];
 
-            // Determine winner
-            var pWinner = players[highestCard.currentPlayer];
+        while(isWar) {
+            players.forEach(async (player) => {
+                // Clear cardsFromPlayers
+                cardsFromPlayers = [];
 
-            cardsFromPlayers.forEach(async (gCard) => {
-                await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
-                gCard.card.rotation.z = -(Math.PI/2);
-                pWinner.addCardBottom(gCard);
+                // If the players deck is empty return
+                if(player.isEmpty()) return;
+
+                var blankCard = player.popCard();
+                var pCard = player.popCard();
+
+                // Rotate blankCard downfacing
+                blankCard.card.rotation.z = -(Math.PI/2);
+                console.log("BlankCard:");
+                console.log(blankCard);
+                console.log("PCard:");
+                console.log(pCard);
+                
+                // Increase the offset
+                player.offsetPos = [player.offsetPos[0], player.offsetPos[1], player.offsetPos[0] + player.drawOffset];
+                console.log("OffsetPos(BlankCard):");
+                console.log(player.offsetPos);
+                // Blank card animation
+                await startMoveAnimation(blankCard.card.position, new THREE.Vector3(player.offsetPos[0], player.offsetPos[1], player.offsetPos[2]), drawingCardAnimationOptions);
+                // Increase the offset (again -- this time for the play card)
+                player.offsetPos = [player.offsetPos[0], player.offsetPos[1], player.offsetPos[0] + player.drawOffset];
+                console.log("OffsetPos(PlayCard):");
+                console.log(player.offsetPos);
+                // Play card animation
+                await startMoveAnimation(pCard.card.position, new THREE.Vector3(player.offsetPos[0], player.offsetPos[1], player.offsetPos[2]), drawingCardAnimationOptions);
+                pCard.card.rotation.z = (Math.PI/2);
+
+                // Sets the card to the player who delt its card
+                pCard.currentPlayer = player.id;
+
+                blankCards.push(blankCard);
+                cardsFromPlayers.push(pCard);
             });
 
-        } else {
-            // WAR LOGIC MAY GO HERE;
-            canPlay = true;
+            // Determine results again
+            result = checkOutcome(cardsFromPlayers);
+
+            highestCard = result[0];
+            isWar = result[1];
+            console.log("Result:");
+            console.log(result);
         }
+
+        // We know there is no more war (we ran through that above), so play the rest of the game out
+        if(highestCard == undefined)
+            throw new Error('A winning card was not found.');
+
+        // Determine winner
+        var pWinner = players[highestCard.currentPlayer];
+
+        cardsFromPlayers.forEach(async (gCard) => {
+            await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+            gCard.card.rotation.z = -(Math.PI/2);
+            pWinner.addCardBottom(gCard);
+        });
+
+        blankCards.forEach(async (gCard) => {
+            await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+            // Already face-down
+            pWinner.addCardBottom(gCard);
+        });
+
+
         // Reformat decks and determine if there is a winner
         setTimeout(async () => {
             var playersStillIn = [];
@@ -634,6 +685,27 @@ async function playMove() {
 
     
     
+}
+
+/**
+ * Checks the outcome of the current hands being drawn (based on a list of cards provided).
+ */
+function checkOutcome(cardsFromPlayers) {
+    console.log("Cards From Players in CheckOutcome():");
+    console.log(cardsFromPlayers);
+    var highestCard = cardsFromPlayers.filter((card) => {
+        return Math.max(cardsFromPlayers[0].value, cardsFromPlayers[1].value, cardsFromPlayers[2].value) === card.value;
+    })[0];
+    console.log("Highest Card:");
+    console.log(highestCard);
+    var isWar = false;
+    cardsFromPlayers.forEach(async (card) => {
+        if(highestCard.value == card.value && highestCard !== card) {
+            // This is a TIE of two of the same values, DO A WAR!!!!!!!!!!
+            isWar = true;
+        }
+    });
+    return [highestCard, isWar];
 }
 
 
