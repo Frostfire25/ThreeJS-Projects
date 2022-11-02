@@ -440,50 +440,59 @@ controls.update();
  * Setting up the card counters for each player
  */
 
+const fontLoader = new THREE.FontLoader();
+var wordFont = null;
+fontLoader.load( `./media/fonts/helvetiker_regular.typeface.json`, function(font) {
+    console.log(font);
+    wordFont = font;
+});
 var playersWords = [];
 
-var fontLoader = new THREE.FontLoader();
-var fontObject = await fontLoader.load( `./media/fonts/helvetiker_regular.typeface.json`, function( font ) {
-    var fontGeometry1 = new THREE.TextGeometry( '0', {
-		font: font,
+function updateWords() {
+
+    // Remove all the words from the screen 
+    playersWords.forEach( (word) => {
+        scene.remove( word );
+    });
+
+    playersWords = [];
+
+    var fontGeometry1 = new THREE.TextGeometry( "" + players[0].deck.length, {
+		font: wordFont,
 		size: 2,
 		height: 0.5
 	} );
-    var fontGeometry2 = new THREE.TextGeometry( '0', {
-		font: font,
+    var fontGeometry2 = new THREE.TextGeometry( "" +players[1].deck.length, {
+		font: wordFont,
 		size: 2,
 		height: 0.5
 	} );
-    var fontGeometry3 = new THREE.TextGeometry( '0', {
-		font: font,
+    var fontGeometry3 = new THREE.TextGeometry( "" + players[2].deck.length, {
+		font: wordFont,
 		size: 2,
 		height: 0.5
 	} );
 
-var fontMaterial = new THREE.MeshBasicMaterial({
-                          color: new THREE.Color('black')
-                    });
+    var fontMaterial = new THREE.MeshBasicMaterial({
+                            color: new THREE.Color('black')
+                        });
 
-playersWords.push(new THREE.Mesh( fontGeometry1, fontMaterial ));
-playersWords.push(new THREE.Mesh( fontGeometry2, fontMaterial ));
-playersWords.push(new THREE.Mesh( fontGeometry3, fontMaterial ));
+    playersWords.push(new THREE.Mesh( fontGeometry1, fontMaterial ));
+    playersWords.push(new THREE.Mesh( fontGeometry2, fontMaterial ));
+    playersWords.push(new THREE.Mesh( fontGeometry3, fontMaterial ));
 
-// Set each words x and z position
-playersWords[0].position.set(33, 0, 12);
-playersWords[1].position.set(-34, 0, 12);
-playersWords[2].position.set(0, 0, -20);
+    // Set each words x and z position
+    playersWords[0].position.set(33, 0, 12);
+    playersWords[1].position.set(-34, 0, 12);
+    playersWords[2].position.set(0, 0, -20);
 
-// Rotate and place each word at the correct y
-playersWords.forEach( (word) => {
-    word.rotation.x = -(Math.PI/2);
-    word.position.setY(-4);
-    scene.add( word );
-});
-
-console.log(playersWords[0]);
-}); 
-
-
+    // Rotate and place each word at the correct y
+    playersWords.forEach( (word) => {
+        word.rotation.x = -(Math.PI/2);
+        word.position.setY(-4);
+        scene.add( word );
+    });
+}
 
 const cTTY = -4;
 
@@ -735,7 +744,12 @@ async function playMove() {
             if(playersStillIn.length <= 1) {
                     // WE HAVE A WINNER! THIS IS BROKEN
                     console.log("Player " + playersStillIn[0].id + " is the winner!");
+                    
                     canPlay = false;
+
+                    setTimeout(async () => { 
+                        window.location.reload();
+                    }, 7000);
             }
         
     }, givingCardsToWinnerAnimationOptions.duration);
@@ -749,11 +763,22 @@ async function playMove() {
  * Checks the outcome of the current hands being drawn (based on a list of cards provided).
  */
 function checkOutcome(cardsFromPlayers) {
-    console.log("Cards From Players in CheckOutcome():");
-    console.log(cardsFromPlayers);
-    var highestCard = cardsFromPlayers.filter((card) => {
-        return Math.max(cardsFromPlayers[0].value, cardsFromPlayers[1].value, cardsFromPlayers[2].value) === card.value;
+    //console.log(cardsFromPlayers);
+
+    var highestCard = null;
+    if(cardsFromPlayers.length == 1) {
+        highestCard = cardsFromPlayers.filter((card) => {
+            return cardsFromPlayers[0].value === card.value;
+        })[0];
+    } else {
+        highestCard = cardsFromPlayers.filter((card) => {
+        return cardsFromPlayers.length == 2 ?
+            Math.max(cardsFromPlayers[0].value, cardsFromPlayers[1].value) === card.value
+             :
+            Math.max(cardsFromPlayers[0].value, cardsFromPlayers[1].value, cardsFromPlayers[2].value) === card.value;
     })[0];
+    }
+    
     console.log("Highest Card:");
     console.log(highestCard);
     var isWar = false;
@@ -814,16 +839,25 @@ function keypressed( event )
 function animate() {
     //priorCard.rotation.y += 0.0075
 
-    // Changes the color every second lower bound.
-    if((lastColorProcTime + 1) < clock.getElapsedTime()) {
-        // Update the text color for each player word
-        const NewColor = new THREE.Color(Math.random() * 0xffffff);
+    if(wordFont != null) {
 
-        playersWords.forEach( (word) => {
-            word.material.color = NewColor;
-        });
+        // Changes the color every second lower bound.
+        if((lastColorProcTime + 1) < clock.getElapsedTime()) {
 
-        lastColorProcTime = clock.getElapsedTime();
+            // Update the word geometries.
+            updateWords();
+
+            // Update the text color for each player word
+            const NewColor = new THREE.Color(Math.random() * 0xffffff);
+
+            playersWords.forEach( (word) => {
+                word.material.color = NewColor;
+            });
+
+            playersWords[0].geometry.parameters.text = "15";
+            
+            lastColorProcTime = clock.getElapsedTime();
+        }
     }
 
     // Updates all tweens.
