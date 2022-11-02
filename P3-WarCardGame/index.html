@@ -48,6 +48,23 @@ function shuffle(array) {
 }
 
 /**
+ * Determines if an array has duplicate objects
+ * https://stackoverflow.com/questions/7376598/in-javascript-how-do-i-check-if-an-array-has-duplicate-values
+ */
+ function hasDuplicates(array) {
+    var valuesSoFar = [];
+    for (var i = 0; i < array.length; ++i) {
+        var value = array[i];
+        if (valuesSoFar.indexOf(value) !== -1) {
+            return value;
+        }
+        valuesSoFar.push(value);
+    }
+    return -1;
+}
+
+
+/**
  * Game of War
  * By Derek Costello and Alexander Elguezabl
  * 
@@ -552,6 +569,18 @@ const givingCardsToWinnerAnimationOptions = {
     callback : function(){
         canPlay = true;
     }};
+
+// Options for the war animation
+const warGiveAnmiation = {
+    duration: 1000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+        
+    },
+    callback : function(){
+        canPlay = true;
+    }}; 
+
 /**
  * Plays a players card
  */
@@ -579,19 +608,15 @@ async function playMove() {
         // Determine who wins here
         console.log("Determine winners");
         
-        var highestCard = undefined;
-        var isWar = false;
-        cardsFromPlayers.forEach(async (card) => {
-            if(highestCard == undefined) {
-                highestCard = card;
-            } 
-            else if(highestCard.value < card.value) {
-                highestCard = card;
-            } else if(highestCard.value == card.value) {
-                // This is a TIE of two of the same values, DO A WAR!!!!!!!!!!
-                isWar = true;
-            }
-        });
+        // Determines the highest card value and if there is a war
+        var highestCard = cardsFromPlayers.filter((card) => {
+            return card.value === Math.max(cardsFromPlayers[0].value, cardsFromPlayers[1].value, cardsFromPlayers[2].value);
+        })[0];
+
+        // Determines if there are duplicates 0 or greater is returned if there is a duplicate. -1 if there is not one
+        var duplicates = hasDuplicates(cardsFromPlayers);
+        console.log("duplicates" + duplicates);
+        var isWar = duplicates > -1 && duplicates === highestCard.value;
 
         if(!isWar) {
 
@@ -601,6 +626,9 @@ async function playMove() {
             // Determine winner
             var pWinner = players[highestCard.currentPlayer];
 
+            console.log(highestCard);
+            console.log(pWinner);
+
             cardsFromPlayers.forEach(async (gCard) => {
                 await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
                 gCard.card.rotation.z = -(Math.PI/2);
@@ -609,7 +637,7 @@ async function playMove() {
 
         } else {
             // WAR LOGIC MAY GO HERE;
-            canPlay = true;
+            await doWar( cardsFromPlayers );
         }
         // Reformat decks and determine if there is a winner
         setTimeout(async () => {
@@ -627,6 +655,7 @@ async function playMove() {
                     // WE HAVE A WINNER! THIS IS BROKEN
                     console.log("Player " + playersStillIn[0].id + " is the winner!");
                 }
+
         });
 
 }, givingCardsToWinnerAnimationOptions.duration);
@@ -634,6 +663,11 @@ async function playMove() {
 
     
     
+}
+
+async function doWar( prevDrawnCards ) {
+
+    canPlay = true;
 }
 
 
