@@ -65,6 +65,16 @@ function hasDuplicates(a) {
  * 
  * If you have any questions please let us know!
  * 
+ * Additional Items
+ * 
+ * - Complete Table Render
+ * - Deck Shuffling
+ * - Card Counter on table
+ * - Page refresh on win
+ * - Panning camera on key war and on camera key-press 'c'
+ * - War animation (flickerin light)
+ * - Orbit Controls
+ * 
  */
 
 // Start of Javascript code
@@ -90,7 +100,7 @@ var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
 // If you want this to span the window, instead of using the myCanvas object, use the window object
 renderer.setPixelRatio(window.devicePixelRatio * 1.01);
 renderer.setSize(window.innerWidth, window.innerHeight * 1);
-renderer.setClearColor(0x000000);
+renderer.setClearColor(0xB0AFAC);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -744,7 +754,7 @@ async function playMove() {
             if(playersStillIn.length <= 1) {
                     // WE HAVE A WINNER! THIS IS BROKEN
                     console.log("Player " + playersStillIn[0].id + " is the winner!");
-                    
+
                     canPlay = false;
 
                     setTimeout(async () => { 
