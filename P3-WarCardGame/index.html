@@ -129,7 +129,7 @@ function Player( id, deck, deckPos, drawPos, drawOffset ) {
     this.deckPos = deckPos;
     this.drawPos = drawPos;
     this.drawOffset = drawOffset;
-    this.offsetPos = []; // Used for placing cards when wars take place
+    this.offsetPos; // Used for placing cards when wars take place
 
     this.addCard = function( card ) {
         // Increase the deckHeight
@@ -586,6 +586,7 @@ const warGiveAnmiation = {
 async function playMove() {
 
     var cardsFromPlayers = [];
+    var oldCardsFromPlayers = [];
     var blankCards = []; // Face-down cards from warring
 
     // Play a card and do card animation
@@ -593,8 +594,8 @@ async function playMove() {
         // If the players deck is empty return
         if(player.isEmpty()) return;
 
-        // Reset offsetPosition
-        player.offsetPos = player.drawPos;
+        // Reset offsetPosition to player's z coords
+        player.offsetPos = player.drawPos[2];
 
         var pCard = player.popCard();
 
@@ -618,51 +619,25 @@ async function playMove() {
 
         // Warring functionality
         while(isWar) {
-            players.forEach(async (player) => {
-                // Clear cardsFromPlayers
-                cardsFromPlayers = [];
+            // Animate the war sequence
+            //warAnimation();
 
-                // If the players deck is empty return
-                if(player.isEmpty()) return;
-
-                var blankCard = player.popCard();
-                var pCard = player.popCard();
-
-                // Rotate blankCard downfacing
-                blankCard.card.rotation.z = -(Math.PI/2);
-                console.log("BlankCard:");
-                console.log(blankCard);
-                console.log("PCard:");
-                console.log(pCard);
-                
-                // Increase the offset
-                player.offsetPos = [player.offsetPos[0], player.offsetPos[1], player.offsetPos[0] + player.drawOffset];
-                console.log("OffsetPos(BlankCard):");
-                console.log(player.offsetPos);
-                // Blank card animation
-                await startMoveAnimation(blankCard.card.position, new THREE.Vector3(player.offsetPos[0], player.offsetPos[1], player.offsetPos[2]), drawingCardAnimationOptions);
-                // Increase the offset (again -- this time for the play card)
-                player.offsetPos = [player.offsetPos[0], player.offsetPos[1], player.offsetPos[0] + player.drawOffset];
-                console.log("OffsetPos(PlayCard):");
-                console.log(player.offsetPos);
-                // Play card animation
-                await startMoveAnimation(pCard.card.position, new THREE.Vector3(player.offsetPos[0], player.offsetPos[1], player.offsetPos[2]), drawingCardAnimationOptions);
-                pCard.card.rotation.z = (Math.PI/2);
-
-                // Sets the card to the player who delt its card
-                pCard.currentPlayer = player.id;
-
-                blankCards.push(blankCard);
-                cardsFromPlayers.push(pCard);
+            // Clear cardsFromPlayers and blankCards, then do the game movement + logic
+            cardsFromPlayers.forEach( (card) => {
+                oldCardsFromPlayers.push(card);
             });
+            cardsFromPlayers = [];
+            blankCards = [];
+            console.log("Before war move");
+            await makeWarMove(cardsFromPlayers, blankCards);
+            console.log("After war move");
 
-            // Determine results again
+
+            await new Promise(_ => setTimeout(_, drawingCardAnimationOptions.duration + 2000)) // Wait animation time + 2s for the above to complete, then calculate
             result = checkOutcome(cardsFromPlayers);
-
+            console.log(result);
             highestCard = result[0];
             isWar = result[1];
-            console.log("Result:");
-            console.log(result);
         }
 
         // We know there is no more war (we ran through that above), so play the rest of the game out
@@ -673,6 +648,12 @@ async function playMove() {
         var pWinner = players[highestCard.currentPlayer];
 
         cardsFromPlayers.forEach(async (gCard) => {
+            await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+            gCard.card.rotation.z = -(Math.PI/2);
+            pWinner.addCardBottom(gCard);
+        });
+
+        oldCardsFromPlayers.forEach(async (gCard) => {
             await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
             gCard.card.rotation.z = -(Math.PI/2);
             pWinner.addCardBottom(gCard);
@@ -727,6 +708,35 @@ function checkOutcome(cardsFromPlayers) {
         }
     });
     return [highestCard, isWar];
+}
+
+async function makeWarMove(cardsFromPlayers, blankCards) {
+
+    players.forEach(async (player) => {
+
+        // If the players deck is empty return
+        if(player.isEmpty()) return;
+
+        var blankCard = player.popCard();
+        var pCard = player.popCard();
+
+        // Sets the card to the player who delt its card
+        pCard.currentPlayer = player.id;
+
+        blankCards.push(blankCard);
+        cardsFromPlayers.push(pCard);
+        
+        // Increase the offset
+        player.offsetPos += player.drawOffset;
+        // Blank card animation
+        await startMoveAnimation(blankCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.offsetPos), drawingCardAnimationOptions);
+        // Increase the offset (again -- this time for the play card)
+        player.offsetPos += player.drawOffset;
+        // Play card animation
+        await startMoveAnimation(pCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.offsetPos), drawingCardAnimationOptions);
+        pCard.card.rotation.z = (Math.PI/2);
+
+    });
 }
 
 
