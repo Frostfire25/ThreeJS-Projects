@@ -112,7 +112,7 @@ camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
 scene.add( camera );
 
 // Light
-var light = new THREE.AmbientLight( 0x404040, 5 )
+var light = new THREE.AmbientLight( 0x404040, 3 );
 //light.position.set( 0, 0, camera.position.z );
 //light.castShadow = true;            // default false
 //light.shadow.mapSize.width = 1024;  // default 512
@@ -184,19 +184,19 @@ function Card( name, filename, value, suit ) {
         //this.geometry2 = new THREE.BoxGeometry( 0.1, 7, 3 );
         //this.geometry2.applyMatrix4( new THREE.Matrix4().makeRotationY( Math.PI ) );
 
-        this.frontTexture = new THREE.MeshBasicMaterial({
+        this.frontTexture = new THREE.MeshStandardMaterial({
                                             color: cardColor,
                                             map: loader.load(this.fileName),
                                             side: THREE.FrontSide
                                         });
 
-        this.backTexture = new THREE.MeshBasicMaterial({ 
+        this.backTexture = new THREE.MeshStandardMaterial({ 
                                              color: cardColor,
                                              map: backOfCardFile,
                                              side: THREE.BackSide
                                         });
 
-        this.sideTexture = new THREE.MeshBasicMaterial({ 
+        this.sideTexture = new THREE.MeshStandardMaterial({ 
                                              color: cardColor
                                             });
 
@@ -215,6 +215,8 @@ function Card( name, filename, value, suit ) {
 
         //this.card = SceneUtils.createMultiMaterialObject( this.geometry, [ this.frontTexture, this.backTexture ] );
         this.card = new THREE.Mesh( this.geometry, [ this.frontTexture, this.backTexture, this.sideTexture, this.sideTexture, this.sideTexture, this.sideTexture ] ); 
+        this.card.castShadow = true;
+        this.card.receiveShadow = true;
     }
 
 }
@@ -247,7 +249,7 @@ function Table(table_texture, leg_texture, edge_texture) {
             topMat.needsUpdate = true;
         } );
         this.tableTop = new THREE.Mesh(topGeom, topMat);
-
+        this.tableTop.receiveShadow = true;
         //
         // Table Legs:
         //
@@ -271,6 +273,7 @@ function Table(table_texture, leg_texture, edge_texture) {
         } );
         for(let i = 0; i < 4; i++) {
             legs[i] = new THREE.Mesh( legGeom, legMat );
+            legs[i].receiveShadow = true;
         }
 
         // Position legs
@@ -304,9 +307,17 @@ function Table(table_texture, leg_texture, edge_texture) {
         });
 
         edges[0] = new THREE.Mesh(edgeGeomLong, edgeMat);
+        edges[0].receiveShadow = true;
+        edges[0].castShadow = true;
         edges[1] = new THREE.Mesh(edgeGeomLong, edgeMat);
+        edges[1].receiveShadow = true;
+        edges[1].castShadow = true;
         edges[2] = new THREE.Mesh(edgeGeomShort, edgeMat);
+        edges[2].receiveShadow = true;
+        edges[2].castShadow = true;
         edges[3] = new THREE.Mesh(edgeGeomShort, edgeMat);
+        edges[3].receiveShadow = true;
+        edges[3].castShadow = true;
 
         // Rotate the long edges
         edges[0].rotation.y += Math.PI / 2;
@@ -330,8 +341,123 @@ function Table(table_texture, leg_texture, edge_texture) {
     }
 }
 
+function LightBulb() {
+    this.group = new THREE.Group();
+    this.init = function () {
+        this.group = new THREE.Group();
+        //main bulb
+        var bulbGeometry = new THREE.SphereGeometry(1, 32, 32);
+        var bulbLight = new THREE.PointLight(0xffee88, 1, 100, 10);
+        var bulbMat = new THREE.MeshStandardMaterial({
+            emissive: 0xffffee,
+            emissiveIntensity: 5,
+            color: 0xffffee,
+            roughness: 1
+        });
+
+        bulbLight.add(new THREE.Mesh(bulbGeometry, bulbMat));
+        bulbLight.position.set(0, 2, 0);
+        bulbLight.castShadow = true;
+
+        var d = 200;
+
+        bulbLight.shadow.camera.left = -d;
+        bulbLight.shadow.camera.right = d;
+        bulbLight.shadow.camera.top = d;
+        bulbLight.shadow.camera.bottom = -d;
+
+        bulbLight.shadow.camera.far = 100;
+
+        //stem
+        var bulbStem = new THREE.CylinderGeometry(0.5, 0.65, 0.55, 32);
+        var stemMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            emissive: 0xffffee,
+            emissiveIntensity: 5,
+            metalness: 0.8,
+            roughness: 0
+        });
+
+        var bStem = new THREE.Mesh(bulbStem, stemMat);
+        bStem.position.set(0, 2.9, 0);
+        bStem.castShadow = true;
+        bStem.receiveShadow = true;
+
+        //plug main
+        var bulbPlug = new THREE.CylinderGeometry(0.52, 0.52, 1.2, 32);
+
+        var plugMat = new THREE.MeshStandardMaterial({
+            color: 0x807d7a
+        });
+
+        var plug = new THREE.Mesh(bulbPlug, plugMat);
+        plug.position.set(0, 3.2, 0);
+        plug.receiveShadow = true;
+        plug.castShadow = true;
+
+        //plug top
+        var topGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.2, 32);
+
+        var topMat = new THREE.MeshStandardMaterial({
+            color: 0xe8d905
+        });
+        var plugTop = new THREE.Mesh(topGeo, topMat);
+        plugTop.position.set(0, 3.75, 0);
+        plugTop.receiveShadow = true;
+        plugTop.castShadow = true;
+
+        //plug rings
+        var ringGeo = new THREE.TorusGeometry(0.52, 0.04, 4, 100);
+
+        var ringMat = new THREE.MeshStandardMaterial({
+            color: 0x807d7a
+        });
+
+        var ringY = 3.33;
+        for (let i = 0; i < 3; i++) {
+            var ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.set(0, ringY, 0);
+            this.group.add(ring);
+
+            ringY += 0.15;
+        }
+
+        //top ring
+        var topRingGeo = new THREE.TorusGeometry(0.49, 0.05, 16, 100);
+
+        var topRing = new THREE.Mesh(topRingGeo, ringMat);
+        topRing.position.set(0, 3.75, 0);
+        topRing.rotation.x = -Math.PI / 2;
+
+        //bottom ring
+        var botRingGeo = new THREE.TorusGeometry(0.5, 0.05, 16, 100);
+
+        var botRing = new THREE.Mesh(botRingGeo, ringMat);
+        botRing.position.set(0, 3.15, 0);
+        botRing.rotation.x = -Math.PI / 2;
+
+        //add to this.group
+        this.group.add(bStem);
+        this.group.add(bulbLight);
+        this.group.add(plug);
+        this.group.add(plugTop);
+        this.group.add(botRing);
+        this.group.add(topRing);
+
+        scene.add(this.group);
+        this.group.position.y = 0;
+        this.group.position.z = 0;
+        this.group.position.x = 0;
+    }
+}
+
 const table = new Table('./media/table/green_felt.jpg', './media/table/leg.jpg', './media/table/edge.jpg');
 table.init();
+
+const lightbulb = new LightBulb();
+lightbulb.init();
+lightbulb.group.position.y = 40;
 
 // Add Helper for now
 const xDir = new THREE.Vector3( 1, 0, 0 );
@@ -581,7 +707,18 @@ const warGiveAnmiation = {
     },
     callback : function(){
         canPlay = true;
-    }}; 
+    }};
+
+// Options for camera animation upon war
+const warCameraAnimation = {
+    duration: 2000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+        
+    },
+    callback : function(){
+        canPlay = true;
+    }};
 
 /**
  * Plays a players card
@@ -631,14 +768,11 @@ async function playMove() {
             });
             cardsFromPlayers = [];
             blankCards = [];
-            console.log("Before war move");
             await makeWarMove(cardsFromPlayers, blankCards);
-            console.log("After war move");
 
 
             await new Promise(_ => setTimeout(_, drawingCardAnimationOptions.duration + 2000)) // Wait animation time + 2s for the above to complete, then calculate
             result = checkOutcome(cardsFromPlayers);
-            console.log(result);
             highestCard = result[0];
             isWar = result[1];
         }
@@ -696,13 +830,9 @@ async function playMove() {
  * Checks the outcome of the current hands being drawn (based on a list of cards provided).
  */
 function checkOutcome(cardsFromPlayers) {
-    console.log("Cards From Players in CheckOutcome():");
-    console.log(cardsFromPlayers);
     var highestCard = cardsFromPlayers.filter((card) => {
         return Math.max(cardsFromPlayers[0].value, cardsFromPlayers[1].value, cardsFromPlayers[2].value) === card.value;
     })[0];
-    console.log("Highest Card:");
-    console.log(highestCard);
     var isWar = false;
     cardsFromPlayers.forEach(async (card) => {
         if(highestCard.value == card.value && highestCard !== card) {
@@ -744,34 +874,32 @@ async function makeWarMove(cardsFromPlayers, blankCards) {
 
 async function warAnimation() {
     // Animate the camera
-    await animateCamera();
+    await animateCamera(false); // Not returning
+    setTimeout(async () => {
+        await animateCamera(true); // Returning
+        setTimeout(async () => {
+            console.log("Returning from war animation");
+            return;
+        }, warCameraAnimation.duration + 1000);
+    }, warCameraAnimation.duration + 1000);
 
     // Flicker lights
     await lightFlicker();
+}
 
-    // Return camera
-
+async function animateCamera(returnCam) { // Reverse is a 1 or -1 determining forwards / backwards
+    var destination = new THREE.Vector3(0, 60, -150);
+    if(returnCam)
+        destination.set(cameraStartX, cameraStartY, cameraStartZ);
+    
+    await startMoveAnimation(camera.position, destination, warCameraAnimation);
     return;
 }
 
-async function animateCamera(start, end, reverse) { // Reverse is a 1 or -1 determining forwards / backwards
-    const startTime = Date.now();
-
-    // Calculate the quartic curve
-
-    while((camera.position.z > end && reverse == 1) || (camera.position.z < start && reverse == -1)) {
-        camera.position.y = cameraStartY + Math.log(Date.now - startTime) / Math.log(4); // Log base 4 of a function over time
-        camera.position.z = cameraStartZ - (Date.now() - startTime) * reverse;
-    }
-
-    if(reverse == -1) { // Moving back to original place
-        camera.position.set(cameraStartX, cameraStartY, cameraStartZ);
-    }
-
-}
-
 async function lightFlicker() {
+    console.log("Flickering");
 
+    return;
 }
 
 document.addEventListener('keypress', keypressed);
@@ -785,6 +913,11 @@ function keypressed( event )
                 playMove();
             }
         }
+        case "c": {
+            if(canPlay) {
+                warAnimation();
+            }
+        }
     }		
 }
 
@@ -793,6 +926,7 @@ function animate() {
 
     // Updates all tweens.
     TWEEN.update();
+    camera.lookAt(0,0,0);
     requestAnimationFrame(animate);
     render();
 }
