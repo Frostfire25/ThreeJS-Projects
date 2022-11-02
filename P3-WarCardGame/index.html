@@ -112,7 +112,7 @@ camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
 scene.add( camera );
 
 // Light
-var light = new THREE.AmbientLight( 0x404040, 3 );
+var light = new THREE.AmbientLight( 0x404040, 2 );
 //light.position.set( 0, 0, camera.position.z );
 //light.castShadow = true;            // default false
 //light.shadow.mapSize.width = 1024;  // default 512
@@ -216,7 +216,7 @@ function Card( name, filename, value, suit ) {
         //this.card = SceneUtils.createMultiMaterialObject( this.geometry, [ this.frontTexture, this.backTexture ] );
         this.card = new THREE.Mesh( this.geometry, [ this.frontTexture, this.backTexture, this.sideTexture, this.sideTexture, this.sideTexture, this.sideTexture ] ); 
         this.card.castShadow = true;
-        this.card.receiveShadow = true;
+        //this.card.receiveShadow = true;
     }
 
 }
@@ -341,32 +341,37 @@ function Table(table_texture, leg_texture, edge_texture) {
     }
 }
 
+// Credit for LightBulb object:
+// https://codepen.io/Vector_victor/pen/veVKpM
 function LightBulb() {
     this.group = new THREE.Group();
+    this.toggleLight = function () {
+        this.bulbLight.visible = !this.bulbLight.visible;
+    }
     this.init = function () {
         this.group = new THREE.Group();
         //main bulb
         var bulbGeometry = new THREE.SphereGeometry(1, 32, 32);
-        var bulbLight = new THREE.PointLight(0xffee88, 1, 100, 10);
+        this.bulbLight = new THREE.PointLight(0xffee88, 1, 5000, 10);
         var bulbMat = new THREE.MeshStandardMaterial({
             emissive: 0xffffee,
             emissiveIntensity: 5,
             color: 0xffffee,
             roughness: 1
         });
-
-        bulbLight.add(new THREE.Mesh(bulbGeometry, bulbMat));
-        bulbLight.position.set(0, 2, 0);
-        bulbLight.castShadow = true;
+        this.bulb = new THREE.Mesh(bulbGeometry, bulbMat);
+        this.bulbLight.castShadow = true;
+        this.bulb.add(this.bulbLight);
+        this.bulb.position.set(0, 2, 0);
 
         var d = 200;
 
-        bulbLight.shadow.camera.left = -d;
-        bulbLight.shadow.camera.right = d;
-        bulbLight.shadow.camera.top = d;
-        bulbLight.shadow.camera.bottom = -d;
+        this.bulbLight.shadow.camera.left = -d;
+        this.bulbLight.shadow.camera.right = d;
+        this.bulbLight.shadow.camera.top = d;
+        this.bulbLight.shadow.camera.bottom = -d;
 
-        bulbLight.shadow.camera.far = 100;
+        this.bulbLight.shadow.camera.far = 100;
 
         //stem
         var bulbStem = new THREE.CylinderGeometry(0.5, 0.65, 0.55, 32);
@@ -378,10 +383,10 @@ function LightBulb() {
             roughness: 0
         });
 
-        var bStem = new THREE.Mesh(bulbStem, stemMat);
-        bStem.position.set(0, 2.9, 0);
-        bStem.castShadow = true;
-        bStem.receiveShadow = true;
+        this.bStem = new THREE.Mesh(bulbStem, stemMat);
+        this.bStem.position.set(0, 2.9, 0);
+        this.bStem.castShadow = true;
+        this.bStem.receiveShadow = true;
 
         //plug main
         var bulbPlug = new THREE.CylinderGeometry(0.52, 0.52, 1.2, 32);
@@ -438,8 +443,8 @@ function LightBulb() {
         botRing.rotation.x = -Math.PI / 2;
 
         //add to this.group
-        this.group.add(bStem);
-        this.group.add(bulbLight);
+        this.group.add(this.bStem);
+        this.group.add(this.bulb);
         this.group.add(plug);
         this.group.add(plugTop);
         this.group.add(botRing);
@@ -458,29 +463,6 @@ table.init();
 const lightbulb = new LightBulb();
 lightbulb.init();
 lightbulb.group.position.y = 40;
-
-// Add Helper for now
-const xDir = new THREE.Vector3( 1, 0, 0 );
-const yDir = new THREE.Vector3( 0, 1, 0 );
-const zDir = new THREE.Vector3( 0, 0, 1 );
-
-//normalize the direction vector (convert to vector of length 1)
-
-const origin = new THREE.Vector3( 0, 0, 0 );
-const length = 10;
-
-const arrowHelperX = new THREE.ArrowHelper( xDir, origin, length, 0xff0000 );
-const arrowHelperY = new THREE.ArrowHelper( yDir, origin, length, 0x00ffff );
-const arrowHelperZ = new THREE.ArrowHelper( zDir, origin, length, 0xff00ff );
-
-arrowHelperX.position.set(0, 10, 0);
-arrowHelperY.position.set(0, 10, 0);
-arrowHelperZ.position.set(0, 10, 0);
-
-scene.add( arrowHelperX );
-scene.add( arrowHelperY );
-scene.add( arrowHelperZ );
-
 
 // Init all cards
 var cards = [];
@@ -756,6 +738,7 @@ async function playMove() {
 
         var highestCard = result[0];
         var isWar = result[1];
+        blankCards = [];
 
         // Warring functionality
         while(isWar) {
@@ -767,7 +750,6 @@ async function playMove() {
                 oldCardsFromPlayers.push(card);
             });
             cardsFromPlayers = [];
-            blankCards = [];
             await makeWarMove(cardsFromPlayers, blankCards);
 
 
@@ -898,6 +880,23 @@ async function animateCamera(returnCam) { // Reverse is a 1 or -1 determining fo
 
 async function lightFlicker() {
     console.log("Flickering");
+    // DONT LOOK BELOW! UGLY!
+    lightbulb.toggleLight();
+    setTimeout(async () => {
+        lightbulb.toggleLight();
+        setTimeout(async () => {
+            lightbulb.toggleLight();
+            setTimeout(async () => {
+                lightbulb.toggleLight();
+                    setTimeout(async () => {
+                        lightbulb.toggleLight();
+                        setTimeout(async () => {
+                        lightbulb.toggleLight();
+                    }, 500);
+                }, 500);
+            }, 500);
+        }, 500);
+    }, 500);
 
     return;
 }
@@ -912,12 +911,21 @@ function keypressed( event )
                 canPlay = false;
                 playMove();
             }
+            break;
         }
         case "c": {
             if(canPlay) {
                 warAnimation();
             }
+            break;
         }
+        case "l": light.visible = !light.visible; break;
+        case "p": lightbulb.toggleLight(); break;
+        case "m": renderer.shadowMap.enabled = !renderer.shadowMap.enabled; break;
+        case "w": lightbulb.group.position.z += 1; break;
+        case "a": lightbulb.group.position.x += 1; break;
+        case "s": lightbulb.group.position.z -= 1; break;
+        case "d": lightbulb.group.position.x -= 1; break;
     }		
 }
 
