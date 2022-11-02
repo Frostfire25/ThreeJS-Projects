@@ -598,9 +598,7 @@ async function playMove() {
     });
 
     setTimeout(async () => {
-        // Determine who wins here
-        console.log("Determine winners");
-        
+        // Determine who wins here        
         var highestCard = undefined;
         var isWar = false;
         cardsFromPlayers.forEach(async (card) => {
@@ -649,6 +647,7 @@ async function playMove() {
             if(playersStillIn.length <= 1) {
                     // WE HAVE A WINNER! THIS IS BROKEN
                     console.log("Player " + playersStillIn[0].id + " is the winner!");
+                    canPlay = false;
             }
         
     }, givingCardsToWinnerAnimationOptions.duration);
