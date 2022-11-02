@@ -123,11 +123,13 @@ const loader = new THREE.TextureLoader();
 const cardColor = new THREE.Color( 'white' );
 const backOfCardFile = loader.load( `./media/cards/card_back.jpg` );
 
-function Player( id, deck, deckPos, drawPos ) {
+function Player( id, deck, deckPos, drawPos, drawOffset ) {
     this.id = id;
     this.deck = deck;
     this.deckPos = deckPos;
     this.drawPos = drawPos;
+    this.drawOffset = drawOffset;
+    this.offsetPos; // Used for placing cards when wars take place
 
     this.addCard = function( card ) {
         // Increase the deckHeight
@@ -433,6 +435,33 @@ controls.update();
 //scene.add( cards[0].card );
 //var priorCard = cards[0].card;
 
+
+/**
+ * Setting up the card counters for each player
+ */
+var fontLoader = new THREE.FontLoader();
+var fontObject = fontLoader.load( './media/fonts/helvetiker_regular.typeface.json' ); 
+console.log(fontObject);
+
+var fontGeometry = new THREE.TextGeometry( 'Hello three.js!', {
+		font: fontObject,
+		size: 80,
+		height: 5,
+		curveSegments: 12,
+		bevelEnabled: true,
+		bevelThickness: 10,
+		bevelSize: 8,
+		bevelOffset: 0,
+		bevelSegments: 5
+	} );
+
+var fontMaterial = new THREE.MeshBasicMaterial({
+                          color: new THREE.Color('white')
+                    });
+var word = new THREE.Mesh( fontGeometry, fontMaterial );
+scene.add( word );
+console.log(word);
+
 const cTTY = -4;
 
 /**
@@ -455,7 +484,11 @@ cards.forEach( (card) => {
 
 
 // Create the players, a list of three players
-var players = [ new Player(0, [], [25, cTTY, 10], [15, cTTY, 10]), new Player(1, [], [-25, cTTY, 10], [-15, cTTY, 10]), new Player(2, [], [0 , cTTY, -15], [0, cTTY, -10]) ];
+var players = [ 
+    new Player(0, [], [25, cTTY, 10], [15, cTTY, 10], -5),      // Player One
+    new Player(1, [], [-25, cTTY, 10], [-15, cTTY, 10], -5),    // Player Two
+    new Player(2, [], [0 , cTTY, -15], [0, cTTY, -10], 5)       // Player Three
+];
 
 // Options for the dealing cards anination
 const dealingAnimationOptions = {
@@ -580,11 +613,16 @@ const warGiveAnmiation = {
 async function playMove() {
 
     var cardsFromPlayers = [];
+    var oldCardsFromPlayers = [];
+    var blankCards = []; // Face-down cards from warring
 
     // Play a card and do card animation
     players.forEach(async (player) => {
         // If the players deck is empty return
         if(player.isEmpty()) return;
+
+        // Reset offsetPosition to player's z coords
+        player.offsetPos = player.drawPos[2];
 
         var pCard = player.popCard();
 
@@ -598,40 +636,62 @@ async function playMove() {
     });
 
     setTimeout(async () => {
-        // Determine who wins here        
-        var highestCard = undefined;
-        var isWar = false;
-        cardsFromPlayers.forEach(async (card) => {
-            if(highestCard == undefined) {
-                highestCard = card;
-            } 
-            else if(highestCard.value < card.value) {
-                highestCard = card;
-            } else if(highestCard.value == card.value) {
-                // This is a TIE of two of the same values, DO A WAR!!!!!!!!!!
-                isWar = true;
-            }
-        });
-        
+        // Determine who wins here
+        console.log("Determine winners");
 
-        if(!isWar) {
+        var result = checkOutcome(cardsFromPlayers);
 
-            if(highestCard == undefined)
-                throw new Error('A winning card was not found.');
+        var highestCard = result[0];
+        var isWar = result[1];
 
-            // Determine winner
-            var pWinner = players[highestCard.currentPlayer];
+        // Warring functionality
+        while(isWar) {
+            // Animate the war sequence
+            //warAnimation();
 
-            cardsFromPlayers.forEach(async (gCard) => {
-                await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
-                gCard.card.rotation.z = -(Math.PI/2);
-                pWinner.addCardBottom(gCard);
+            // Clear cardsFromPlayers and blankCards, then do the game movement + logic
+            cardsFromPlayers.forEach( (card) => {
+                oldCardsFromPlayers.push(card);
             });
+            cardsFromPlayers = [];
+            blankCards = [];
+            console.log("Before war move");
+            await makeWarMove(cardsFromPlayers, blankCards);
+            console.log("After war move");
 
-        } else {
-            // WAR LOGIC MAY GO HERE;
-            await doWar( cardsFromPlayers );
+
+            await new Promise(_ => setTimeout(_, drawingCardAnimationOptions.duration + 2000)) // Wait animation time + 2s for the above to complete, then calculate
+            result = checkOutcome(cardsFromPlayers);
+            console.log(result);
+            highestCard = result[0];
+            isWar = result[1];
         }
+
+        // We know there is no more war (we ran through that above), so play the rest of the game out
+        if(highestCard == undefined)
+            throw new Error('A winning card was not found.');
+
+        // Determine winner
+        var pWinner = players[highestCard.currentPlayer];
+
+        cardsFromPlayers.forEach(async (gCard) => {
+            await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+            gCard.card.rotation.z = -(Math.PI/2);
+            pWinner.addCardBottom(gCard);
+        });
+
+        oldCardsFromPlayers.forEach(async (gCard) => {
+            await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+            gCard.card.rotation.z = -(Math.PI/2);
+            pWinner.addCardBottom(gCard);
+        });
+
+        blankCards.forEach(async (gCard) => {
+            await startMoveAnimation(gCard.card.position, new THREE.Vector3(pWinner.deckPos[0], pWinner.deckPos[1], pWinner.deckPos[2]), givingCardsToWinnerAnimationOptions);
+            // Already face-down
+            pWinner.addCardBottom(gCard);
+        });
+
 
         // Reformat decks and determine if there is a winner
         setTimeout(async () => {
@@ -658,11 +718,53 @@ async function playMove() {
 }
 
 /**
- * Activates a war
- */ 
-async function doWar( cardsFromPlayers ) {
+ * Checks the outcome of the current hands being drawn (based on a list of cards provided).
+ */
+function checkOutcome(cardsFromPlayers) {
+    console.log("Cards From Players in CheckOutcome():");
+    console.log(cardsFromPlayers);
+    var highestCard = cardsFromPlayers.filter((card) => {
+        return Math.max(cardsFromPlayers[0].value, cardsFromPlayers[1].value, cardsFromPlayers[2].value) === card.value;
+    })[0];
+    console.log("Highest Card:");
+    console.log(highestCard);
+    var isWar = false;
+    cardsFromPlayers.forEach(async (card) => {
+        if(highestCard.value == card.value && highestCard !== card) {
+            // This is a TIE of two of the same values, DO A WAR!!!!!!!!!!
+            isWar = true;
+        }
+    });
+    return [highestCard, isWar];
+}
 
-    canPlay = true;
+async function makeWarMove(cardsFromPlayers, blankCards) {
+
+    players.forEach(async (player) => {
+
+        // If the players deck is empty return
+        if(player.isEmpty()) return;
+
+        var blankCard = player.popCard();
+        var pCard = player.popCard();
+
+        // Sets the card to the player who delt its card
+        pCard.currentPlayer = player.id;
+
+        blankCards.push(blankCard);
+        cardsFromPlayers.push(pCard);
+        
+        // Increase the offset
+        player.offsetPos += player.drawOffset;
+        // Blank card animation
+        await startMoveAnimation(blankCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.offsetPos), drawingCardAnimationOptions);
+        // Increase the offset (again -- this time for the play card)
+        player.offsetPos += player.drawOffset;
+        // Play card animation
+        await startMoveAnimation(pCard.card.position, new THREE.Vector3(player.drawPos[0], player.drawPos[1], player.offsetPos), drawingCardAnimationOptions);
+        pCard.card.rotation.z = (Math.PI/2);
+
+    });
 }
 
 
