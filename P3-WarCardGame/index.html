@@ -439,28 +439,51 @@ controls.update();
 /**
  * Setting up the card counters for each player
  */
-var fontLoader = new THREE.FontLoader();
-var fontObject = fontLoader.load( './media/fonts/helvetiker_regular.typeface.json' ); 
-console.log(fontObject);
 
-var fontGeometry = new THREE.TextGeometry( 'Hello three.js!', {
-		font: fontObject,
-		size: 80,
-		height: 5,
-		curveSegments: 12,
-		bevelEnabled: true,
-		bevelThickness: 10,
-		bevelSize: 8,
-		bevelOffset: 0,
-		bevelSegments: 5
+var playersWords = [];
+
+var fontLoader = new THREE.FontLoader();
+var fontObject = await fontLoader.load( `./media/fonts/helvetiker_regular.typeface.json`, function( font ) {
+    var fontGeometry1 = new THREE.TextGeometry( '0', {
+		font: font,
+		size: 2,
+		height: 0.5
+	} );
+    var fontGeometry2 = new THREE.TextGeometry( '0', {
+		font: font,
+		size: 2,
+		height: 0.5
+	} );
+    var fontGeometry3 = new THREE.TextGeometry( '0', {
+		font: font,
+		size: 2,
+		height: 0.5
 	} );
 
 var fontMaterial = new THREE.MeshBasicMaterial({
-                          color: new THREE.Color('white')
+                          color: new THREE.Color('black')
                     });
-var word = new THREE.Mesh( fontGeometry, fontMaterial );
-scene.add( word );
-console.log(word);
+
+playersWords.push(new THREE.Mesh( fontGeometry1, fontMaterial ));
+playersWords.push(new THREE.Mesh( fontGeometry2, fontMaterial ));
+playersWords.push(new THREE.Mesh( fontGeometry3, fontMaterial ));
+
+// Set each words x and z position
+playersWords[0].position.set(33, 0, 12);
+playersWords[1].position.set(-34, 0, 12);
+playersWords[2].position.set(0, 0, -20);
+
+// Rotate and place each word at the correct y
+playersWords.forEach( (word) => {
+    word.rotation.x = -(Math.PI/2);
+    word.position.setY(-4);
+    scene.add( word );
+});
+
+console.log(playersWords[0]);
+}); 
+
+
 
 const cTTY = -4;
 
@@ -535,6 +558,11 @@ async function dealCardsAnimation() {
 // Deal the cards to each player.
 
 console.log(players);
+
+var clock = new THREE.Clock();
+var speed = 2; //units a second
+clock.start();
+var lastColorProcTime = 0;
 
 // Starts the animation process
 animate();
@@ -768,6 +796,7 @@ async function makeWarMove(cardsFromPlayers, blankCards) {
 }
 
 
+
 document.addEventListener('keypress', keypressed);
 
 function keypressed( event )
@@ -783,7 +812,19 @@ function keypressed( event )
 }
 
 function animate() {
-    //priorCard.rotation.y += 0.0075;
+    //priorCard.rotation.y += 0.0075
+
+    // Changes the color every second lower bound.
+    if((lastColorProcTime + 1) < clock.getElapsedTime()) {
+        // Update the text color for each player word
+        const NewColor = new THREE.Color(Math.random() * 0xffffff);
+
+        playersWords.forEach( (word) => {
+            word.material.color = NewColor;
+        });
+
+        lastColorProcTime = clock.getElapsedTime();
+    }
 
     // Updates all tweens.
     TWEEN.update();
