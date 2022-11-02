@@ -104,7 +104,10 @@ window.addEventListener( 'resize', function() {
 
 // Adding a camera
 var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-camera.position.set(50, 50, 50);  // Try moving this around!
+const cameraStartX = 40;
+const cameraStartY = 50;
+const cameraStartZ = -30;
+camera.position.set(cameraStartX, cameraStartY, cameraStartZ);  // Try moving this around!
 camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
 scene.add( camera );
 
@@ -620,7 +623,7 @@ async function playMove() {
         // Warring functionality
         while(isWar) {
             // Animate the war sequence
-            //warAnimation();
+            await warAnimation();
 
             // Clear cardsFromPlayers and blankCards, then do the game movement + logic
             cardsFromPlayers.forEach( (card) => {
@@ -739,6 +742,37 @@ async function makeWarMove(cardsFromPlayers, blankCards) {
     });
 }
 
+async function warAnimation() {
+    // Animate the camera
+    await animateCamera();
+
+    // Flicker lights
+    await lightFlicker();
+
+    // Return camera
+
+    return;
+}
+
+async function animateCamera(start, end, reverse) { // Reverse is a 1 or -1 determining forwards / backwards
+    const startTime = Date.now();
+
+    // Calculate the quartic curve
+
+    while((camera.position.z > end && reverse == 1) || (camera.position.z < start && reverse == -1)) {
+        camera.position.y = cameraStartY + Math.log(Date.now - startTime) / Math.log(4); // Log base 4 of a function over time
+        camera.position.z = cameraStartZ - (Date.now() - startTime) * reverse;
+    }
+
+    if(reverse == -1) { // Moving back to original place
+        camera.position.set(cameraStartX, cameraStartY, cameraStartZ);
+    }
+
+}
+
+async function lightFlicker() {
+
+}
 
 document.addEventListener('keypress', keypressed);
 
