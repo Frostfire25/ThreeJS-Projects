@@ -634,27 +634,25 @@ async function playMove() {
             // WAR LOGIC MAY GO HERE;
             await doWar( cardsFromPlayers );
         }
+
         // Reformat decks and determine if there is a winner
         setTimeout(async () => {
             var playersStillIn = [];
+
             players.forEach((player) => {
                 if(!player.isEmpty()) {
                     player.reformatDeck();
                     playersStillIn.push(player);
                 }
-                
-                // If only one player is left
-                console.log(playersStillIn);
+            });
 
-                if(playersStillIn.length <= 1) {
+            if(playersStillIn.length <= 1) {
                     // WE HAVE A WINNER! THIS IS BROKEN
                     console.log("Player " + playersStillIn[0].id + " is the winner!");
-                }
-
-        });
-
-}, givingCardsToWinnerAnimationOptions.duration);
-    }, drawingCardAnimationOptions.duration + 2000);
+            }
+        
+    }, givingCardsToWinnerAnimationOptions.duration);
+         }, drawingCardAnimationOptions.duration + 2000);
 
     
     
