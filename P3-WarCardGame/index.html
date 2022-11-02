@@ -48,6 +48,16 @@ function shuffle(array) {
 }
 
 /**
+ * Determines if an array has duplicate objects
+ * https://stackoverflow.com/questions/7376598/in-javascript-how-do-i-check-if-an-array-has-duplicate-values
+ */
+function hasDuplicates(a) {
+
+    const noDups = new Set(a);
+    return a.length !== noDups.size;
+}
+
+/**
  * Game of War
  * By Derek Costello and Alexander Elguezabl
  * 
@@ -558,6 +568,18 @@ const givingCardsToWinnerAnimationOptions = {
     callback : function(){
         canPlay = true;
     }};
+
+// Options for the war animation
+const warGiveAnmiation = {
+    duration: 1000, 
+    easing : TWEEN.Easing.Quadratic.InOut,
+    update: function(d) {
+        
+    },
+    callback : function(){
+        canPlay = true;
+    }}; 
+
 /**
  * Plays a players card
  */
@@ -594,6 +616,7 @@ async function playMove() {
         var highestCard = result[0];
         var isWar = result[1];
 
+        // Warring functionality
         while(isWar) {
             players.forEach(async (player) => {
                 // Clear cardsFromPlayers
@@ -665,23 +688,21 @@ async function playMove() {
         // Reformat decks and determine if there is a winner
         setTimeout(async () => {
             var playersStillIn = [];
+
             players.forEach((player) => {
                 if(!player.isEmpty()) {
                     player.reformatDeck();
                     playersStillIn.push(player);
                 }
-                
-                // If only one player is left
-                console.log(playersStillIn);
+            });
 
-                if(playersStillIn.length <= 1) {
+            if(playersStillIn.length <= 1) {
                     // WE HAVE A WINNER! THIS IS BROKEN
                     console.log("Player " + playersStillIn[0].id + " is the winner!");
-                }
-        });
-
-}, givingCardsToWinnerAnimationOptions.duration);
-    }, drawingCardAnimationOptions.duration + 2000);
+            }
+        
+    }, givingCardsToWinnerAnimationOptions.duration);
+         }, drawingCardAnimationOptions.duration + 2000);
 
     
     
