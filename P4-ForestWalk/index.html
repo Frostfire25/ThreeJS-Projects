@@ -28,7 +28,8 @@ renderer.shadowMap.enabled = true;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 
-function BinaryTree(start, recursions) {
+function Tree(start, recursions) {
+    this.group = new THREE.Group();
     this.instructions = "";
     this.rules = function (args){
         if(args[0] == "B") {
@@ -182,7 +183,6 @@ function BinaryTree(start, recursions) {
 
         scene.add(newMesh);
     }
-
     this.drawTree = function (deltAngles) {
         console.log("Running drawTree");
 
@@ -224,6 +224,8 @@ function BinaryTree(start, recursions) {
 
                     scene.add(mesh);
 
+                    this.group.add(mesh);
+
                     lastPos = newPos;
 
                     if(this.instructions.charAt(i) == "F") {
@@ -232,9 +234,10 @@ function BinaryTree(start, recursions) {
                             lastPos[0], lastPos[1], lastPos[2]
                         ]);
                         geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-                        var ptMat = new THREE.PointsMaterial( { size: 5, sizeAttenuation: false, color: 0x00ff00} );
-                        var dot = new THREE.Points( geom, ptMat );
-                        scene.add( dot );
+                        var ptMat = new THREE.PointsMaterial({size: 5, sizeAttenuation: false, color: 0x00ff00});
+                        var dot = new THREE.Points(geom, ptMat);
+                        scene.add(dot);
+                        this.group.add(dot);
                     }
                     break;
                 case "+": // Increase xAngle
@@ -279,14 +282,15 @@ function BinaryTree(start, recursions) {
             }
         }
 
-
+        scene.add(this.group);
     }
 }
 
-var tree = new BinaryTree("F", 4);
+var tree = new Tree("F", 4);
 //tree.drawTwig([0,0], 35, Math.PI / 4);
 //tree.instructions = "B[+F]-F"
 tree.drawTree([20, 35, 45/*, 60, 90, 110, 130*/]);
+tree.group.position.set(5, -2, -5);
 console.log(tree.instructions);
 
 
