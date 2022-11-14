@@ -202,7 +202,8 @@ function Tree(start, recursions) {
 
         // Geometry management
         var geom;
-        var mat;
+        const logMat = new THREE.MeshBasicMaterial({color: 0x4B371C});
+        const leafMat = new THREE.MeshBasicMaterial({color: 0x00F400, transparent: true, opacity: 0.8});
         var vertices; // For points
 
         // Logic management
@@ -213,13 +214,11 @@ function Tree(start, recursions) {
                 case "B":
                 case "F":
                     //console.log("Drawing branch");
-                    geom = new THREE.CylinderGeometry(rad, rad, length, 4);
+                    geom = new THREE.CylinderGeometry(rad - rad / 5, rad, length, 16);
                     newPos = [lastPos[0] + length * Math.cos(xAngle), lastPos[1] + length * ((Math.sin(xAngle) + Math.sin(zAngle)) / 2), lastPos[2] + length * Math.cos(zAngle)];
-                    mat = new THREE.MeshBasicMaterial({color: 0x4B371C});
 
-                    var mesh = new THREE.Mesh(geom, mat);
+                    var mesh = new THREE.Mesh(geom, logMat);
                     mesh.position.set(lastPos[0] + (length / 2) * Math.cos(xAngle), lastPos[1] + (length / 2) * ((Math.sin(xAngle) + Math.sin(zAngle)) / 2), lastPos[2] + (length / 2) * Math.cos(zAngle));
-                    //mesh.rotation.set(xAxisDisplayAngle, 0, -zAxisDisplayAngle);
                     mesh.rotation.set(Math.cos(zAngle), 0, -Math.cos(xAngle));
 
                     scene.add(mesh);
@@ -228,16 +227,15 @@ function Tree(start, recursions) {
 
                     lastPos = newPos;
 
+                    // Build a leaf if the letter is "F"
                     if(this.instructions.charAt(i) == "F") {
-                        geom = new THREE.BufferGeometry();
-                        vertices = new Float32Array([
-                            lastPos[0], lastPos[1], lastPos[2]
-                        ]);
-                        geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-                        var ptMat = new THREE.PointsMaterial({size: 5, sizeAttenuation: false, color: 0x00ff00});
-                        var dot = new THREE.Points(geom, ptMat);
-                        scene.add(dot);
-                        this.group.add(dot);
+                        geom = new THREE.BoxGeometry(length ** 0.5, length ** 0.5, length ** 0.5); // Create a leaf 2x the size of the radius of the branch
+                        mesh = new THREE.Mesh(geom, leafMat);
+                        mesh.position.set(lastPos[0] + (length ** 0.5 / 2) * Math.cos(xAngle), lastPos[1] + (length ** 0.5 / 2) * ((Math.sin(xAngle) + Math.sin(zAngle)) / 2), lastPos[2] + (length ** 0.5 / 2) * Math.cos(zAngle));
+                        mesh.rotation.set(Math.cos(zAngle), 0, -Math.cos(xAngle));
+                        scene.add(mesh);
+                        
+                        this.group.add(mesh);
                     }
                     break;
                 case "+": // Increase xAngle
@@ -245,32 +243,32 @@ function Tree(start, recursions) {
                     var deltaAngle = getAngle() * Math.PI / 180;
                     xAngle += deltaAngle;
                     length -= length / 4;
-                    rad -= rad / 100;
+                    rad -= rad / 5;
                     break;
                 case "-": // Decrease xAngle
                     //console.log("Decreasing angle");
                     var deltaAngle = getAngle() * Math.PI / 180;
                     xAngle -= deltaAngle;
                     length -= length / 4;
-                    rad -= rad / 100;
+                    rad -= rad / 5;
                     break;
                 case "^": // Increase zAngle
                     //console.log("Decreasing angle");
                     var deltaAngle = getAngle() * Math.PI / 180;
                     zAngle += deltaAngle;
                     length -= length / 4;
-                    rad -= rad / 100;
+                    rad -= rad / 5;
                     break;
                 case "%": // Decrease zAngle
                     //console.log("Decreasing angle");
                     var deltaAngle = getAngle() * Math.PI / 180;
                     zAngle -= deltaAngle;
                     length -= length / 4;
-                    rad -= rad / 100;
+                    rad -= rad / 5;
                     break;
                 case "[":
                     //console.log("Pushed to stack");
-                    stack.push([lastPos, xAngle, zAngle, length]);
+                    stack.push([lastPos, xAngle, zAngle, length, rad]);
                     break;
                 case  "]":
                     //console.log("Popped from stack");
@@ -279,6 +277,7 @@ function Tree(start, recursions) {
                     xAngle = values[1];
                     zAngle = values[2];
                     length = values[3];
+                    rad = values[4];
             }
         }
 
@@ -286,12 +285,27 @@ function Tree(start, recursions) {
     }
 }
 
-var tree = new Tree("F", 4);
+var tree = new Tree("B", 4);
 //tree.drawTwig([0,0], 35, Math.PI / 4);
 //tree.instructions = "B[+F]-F"
 tree.drawTree([20, 35, 45/*, 60, 90, 110, 130*/]);
-tree.group.position.set(5, -2, -5);
-console.log(tree.instructions);
+//tree.group.position.set(5, -2, -5);
+tree.group.position.set(0, -2, 0);
+
+var tree2 = new Tree("B", 4);
+tree2.drawTree([20, 35, 45]);
+tree2.group.position.set(5, -2, -5);
+
+var tree3 = new Tree("B", 4);
+tree3.drawTree([20, 35, 45]);
+tree3.group.position.set(1, -2, -4);
+
+
+var tree4 = new Tree("B", 4);
+tree4.drawTree([20, 35, 45]);
+tree4.group.position.set(-3, -2, -7);
+
+
 
 
 // Keyboard Input Listener
