@@ -1,0 +1,158 @@
+<html>
+<head>
+    <title>Derek Costello Practice 9.4</title>
+</head>
+<body>
+
+    <canvas id="myCanvas"></canvas>
+
+<script type="module">
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
+
+// Define scene
+var scene = new THREE.Scene();
+
+// Camera
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.set(0, 0, 10);
+camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+scene.add( camera );
+
+// Define renderer
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+renderer.setClearColor(0x000000);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+
+function BinaryTree(start, recursions) {
+    this.instructions = "";
+    this.rules = {
+        "G" : "GG",
+        //"F" : "G[+F]-F",
+        "F" : "G+[[F]-F]-G[-GF]+F",
+        "+" : "+",
+        "-" : "-",
+        "[" : "[",
+        "]" : "]"
+    }
+    this.init = function (str, numRecursions) {
+        if(numRecursions == 0) {
+            return;
+        }
+
+        var newStr = "";
+        for(var i = 0; i < str.length; i++) {
+            newStr += this.rules[str.charAt(i)];
+        }
+
+        this.instructions = newStr;
+
+        this.init(this.instructions, numRecursions - 1);
+    }
+    this.init(start, recursions);
+    this.drawTwig = function (startPos, length, angle) {
+        const mat = new THREE.LineBasicMaterial({color: 0xffff00});
+        var geom = new THREE.BufferGeometry();
+        console.log(startPos[0]);
+        var vertices = new Float32Array([
+            startPos[0], startPos[1], 0,
+            startPos[0] + length * Math.cos(angle), startPos[1] + length * Math.sin(angle), 0
+        ]);
+        geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+
+        var line = new THREE.Line(geom, mat);
+
+        scene.add(line);
+    }
+
+    this.drawTree = function () {
+        console.log("Running drawTree");
+        //console.log(this.instructions.length);
+        var deltaAngle = 20 * Math.PI / 180;
+        var deltaLength = 1;
+        var lastPos = [0, 0];
+        var currPos = [0, 0];
+        var angle = 70 * Math.PI / 180;
+
+        var geom;
+        const mat = new THREE.LineBasicMaterial({color: 0xffff00});
+        var vertices;
+
+        var stack = [];
+
+        for(let i = 0; i < this.instructions.length; i++) {
+            //console.log(this.instructions.charAt(i));
+            switch(this.instructions.charAt(i)) {
+                case "G":
+                case "F":
+                    //console.log("Drawing branch");
+                    geom = new THREE.BufferGeometry();
+                    var newPos = [lastPos[0] + deltaLength * Math.cos(angle), lastPos[1] + deltaLength * Math.sin(angle)]
+                    vertices = new Float32Array([
+                        lastPos[0], lastPos[1], 0,
+                        newPos[0], newPos[1], 0
+                    ]);
+                    geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+                    var line = new THREE.Line(geom, mat);
+                    scene.add(line);
+                    lastPos = newPos;
+                    break;
+                case "+":
+                    //console.log("Increasing angle");
+                    angle += deltaAngle;
+                    deltaLength -= deltaLength / 8;
+                    break;
+                case "-":
+                    //console.log("Decreasing angle");
+                    angle -= deltaAngle;
+                    deltaLength -= deltaLength / 8;
+                    break;
+                case "[":
+                    //console.log("Pushed to stack");
+                    stack.push([lastPos, angle, deltaLength]);
+                    break;
+                case  "]":
+                    //console.log("Popped from stack");
+                    var values = stack.pop();
+                    lastPos = values[0];
+                    angle = values[1];
+                    deltaLength = values[2];
+            }
+        }
+
+
+    }
+}
+
+var tree = new BinaryTree("F", 6);
+//tree.drawTwig([0,0], 1, Math.PI / 4);
+tree.drawTree();
+console.log(tree.instructions);
+
+
+// Keyboard Input Listener
+document.addEventListener('keydown', (e) => {
+    if(e.key === "a") {/*Do nothing for now*/}
+});
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    render();
+}
+
+function render() {
+    renderer.render(scene, camera);
+}
+
+// Initiate graphical loop
+animate();
+
+    </script>
+
+</body>
+</html>
