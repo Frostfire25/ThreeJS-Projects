@@ -34,8 +34,10 @@ function BinaryTree(start, recursions) {
         "G" : "GG",
         //"F" : "G[+F]-F",
         "F" : "G+[[F]-F]-G[-GF]+F",
+        //"B" : "BB",
         "+" : "+",
         "-" : "-",
+        //"^" : "^",
         "[" : "[",
         "]" : "]"
     }
@@ -55,72 +57,180 @@ function BinaryTree(start, recursions) {
     }
     this.init(start, recursions);
     this.drawTwig = function (startPos, length, angle) {
-        const mat = new THREE.LineBasicMaterial({color: 0xffff00});
+        // Line stuff
+        var mat = new THREE.LineBasicMaterial({color: 0xff0000});
         var geom = new THREE.BufferGeometry();
-        console.log(startPos[0]);
+        console.log(startPos);
+        var newLinePos = [startPos[0] + length * Math.cos(angle), startPos[1] + length * Math.sin(angle)];
+        var newLineAngle = angle + angle / 2;
         var vertices = new Float32Array([
-            startPos[0], startPos[1], 0,
-            startPos[0] + length * Math.cos(angle), startPos[1] + length * Math.sin(angle), 0
+            startPos[0], startPos[1], .11,
+            newLinePos[0], newLinePos[1], .11
         ]);
         geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
 
         var line = new THREE.Line(geom, mat);
 
         scene.add(line);
+
+        geom = new THREE.BufferGeometry();
+        vertices = new Float32Array([
+            newLinePos[0], newLinePos[1], .11 / 2,
+            newLinePos[0] + (length / 2) * Math.cos(newLineAngle), newLinePos[1] + (length / 2) * Math.sin(newLineAngle), .11 / 2
+        ]);
+        geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+
+        var newLine = new THREE.Line(geom, mat);
+
+        scene.add(newLine);
+
+        // End line stuff
+        
+
+        // Cylinder stuff
+
+        var rad = 0.1;
+        mat = new THREE.MeshBasicMaterial({color: 0xffff00});
+        geom = new THREE.CylinderGeometry(rad, rad, length, 4);
+
+        var mesh = new THREE.Mesh(geom, mat);
+
+        var newPos = [startPos[0] + (length / 2) * Math.cos(angle), startPos[1] + (length / 2) * Math.sin(angle), 0];
+        var newStart = [startPos[0] + length * Math.cos(angle), startPos[1] + length * Math.sin(angle), 0];
+
+        mesh.position.set(newPos[0], newPos[1], newPos[2]);
+        mesh.rotation.set(0, 0, -angle);
+
+        scene.add(mesh);
+
+        /*var ptGeom = new THREE.BufferGeometry();
+        var newVerts = new Float32Array([
+            startPos[0], startPos[1], 0
+        ]);
+        ptGeom.setAttribute('position', new THREE.BufferAttribute(newVerts, 3));
+        var ptMat = new THREE.PointsMaterial( { size: 30, sizeAttenuation: false, color: 0x00ffff} );
+        var dot = new THREE.Points( ptGeom, ptMat );
+        scene.add( dot );
+
+        ptGeom = new THREE.BufferGeometry();
+        newVerts = new Float32Array([
+            newStart[0], newStart[1], 0
+        ]);
+        ptGeom.setAttribute('position', new THREE.BufferAttribute(newVerts, 3));
+        var newDot = new THREE.Points( ptGeom, ptMat );
+        scene.add( newDot );
+
+        ptGeom = new THREE.BufferGeometry();
+        newVerts = new Float32Array([
+            newPos[0], newPos[1], 0
+        ]);
+        ptGeom.setAttribute('position', new THREE.BufferAttribute(newVerts, 3));
+        var newDot = new THREE.Points( ptGeom, ptMat );
+        scene.add( newDot );*/
+
+
+        length -= length / 2;
+        rad -= rad / 2;
+        var displayAngle = angle - angle / 2
+        angle += angle / 2;
+
+        console.log("New Start");
+        console.log(newStart);
+
+        // Second branch
+        mat = new THREE.MeshBasicMaterial({color: 0xff00ff});
+        geom = new THREE.CylinderGeometry(rad, rad, length, 4);
+
+        var newMesh = new THREE.Mesh(geom, mat);
+
+        var newNewPos = [newStart[0] + (length / 2) * Math.cos(angle), newStart[1] + (length / 2) * Math.sin(angle), 0];
+        
+        console.log(newNewPos);
+
+        /*ptGeom = new THREE.BufferGeometry();
+        newVerts = new Float32Array([
+            newNewPos[0], newNewPos[1], 0
+        ]);
+        ptGeom.setAttribute('position', new THREE.BufferAttribute(newVerts, 3));
+        var newDot = new THREE.Points( ptGeom, ptMat );
+        scene.add( newDot );*/
+
+        newMesh.position.set(newNewPos[0], newNewPos[1], newNewPos[2]);
+        newMesh.rotation.set(0, 0, -displayAngle);
+
+        scene.add(newMesh);
     }
 
     this.drawTree = function () {
         console.log("Running drawTree");
         //console.log(this.instructions.length);
         var deltaAngle = 20 * Math.PI / 180;
-        var deltaLength = 1;
+        var length = 1;
+        var rad = .1;
         var lastPos = [0, 0];
-        var currPos = [0, 0];
-        var angle = 70 * Math.PI / 180;
+        var newPos = [0, 0];
+        var displayAngle = 0;
+        var angle = 90 * Math.PI / 180;
 
         var geom;
-        const mat = new THREE.LineBasicMaterial({color: 0xffff00});
-        var vertices;
+        var mat;
+        var vertices; // For points
 
         var stack = [];
 
         for(let i = 0; i < this.instructions.length; i++) {
-            //console.log(this.instructions.charAt(i));
             switch(this.instructions.charAt(i)) {
                 case "G":
                 case "F":
                     //console.log("Drawing branch");
-                    geom = new THREE.BufferGeometry();
-                    var newPos = [lastPos[0] + deltaLength * Math.cos(angle), lastPos[1] + deltaLength * Math.sin(angle)]
-                    vertices = new Float32Array([
-                        lastPos[0], lastPos[1], 0,
-                        newPos[0], newPos[1], 0
-                    ]);
-                    geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-                    var line = new THREE.Line(geom, mat);
-                    scene.add(line);
+                    geom = new THREE.CylinderGeometry(rad, rad, length, 4);
+                    newPos = [lastPos[0] + length * Math.cos(angle), lastPos[1] + length * Math.sin(angle)]
+                    mat = new THREE.MeshBasicMaterial({color: 0x00ff00});
+
+                    var mesh = new THREE.Mesh(geom, mat);
+                    mesh.position.set(lastPos[0] + (length / 2) * Math.cos(angle), lastPos[1] + (length / 2) * Math.sin(angle), 0);
+                    mesh.rotation.set(0, 0, -displayAngle);
+
+                    scene.add(mesh);
+
                     lastPos = newPos;
+
+                    if(this.instructions.charAt(i) == "F") {
+                        geom = new THREE.BufferGeometry();
+                        vertices = new Float32Array([
+                            lastPos[0], lastPos[1], 0
+                        ]);
+                        geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+                        var ptMat = new THREE.PointsMaterial( { size: 5, sizeAttenuation: false, color: 0xff0000} );
+                        var dot = new THREE.Points( geom, ptMat );
+                        scene.add( dot );
+                    }
                     break;
                 case "+":
                     //console.log("Increasing angle");
                     angle += deltaAngle;
-                    deltaLength -= deltaLength / 8;
+                    displayAngle -= deltaAngle;
+                    length -= length / 8;
+                    rad -= rad / 100;
                     break;
                 case "-":
                     //console.log("Decreasing angle");
                     angle -= deltaAngle;
-                    deltaLength -= deltaLength / 8;
+                    displayAngle += deltaAngle;
+                    length -= length / 8;
+                    rad -= rad / 100;
                     break;
                 case "[":
                     //console.log("Pushed to stack");
-                    stack.push([lastPos, angle, deltaLength]);
+                    stack.push([lastPos, angle, displayAngle, length]);
                     break;
                 case  "]":
                     //console.log("Popped from stack");
                     var values = stack.pop();
                     lastPos = values[0];
                     angle = values[1];
-                    deltaLength = values[2];
+                    displayAngle = values[2];
+                    length = values[3];
             }
         }
 
@@ -128,8 +238,8 @@ function BinaryTree(start, recursions) {
     }
 }
 
-var tree = new BinaryTree("F", 6);
-//tree.drawTwig([0,0], 1, Math.PI / 4);
+var tree = new BinaryTree("F", 4);
+//tree.drawTwig([0,0], 35, Math.PI / 4);
 tree.drawTree();
 console.log(tree.instructions);
 
