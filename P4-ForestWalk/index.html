@@ -202,8 +202,8 @@ function Tree(start, recursions) {
 
         // Geometry management
         var geom;
-        const logMat = new THREE.MeshBasicMaterial({color: 0x4B371C});
-        const leafMat = new THREE.MeshBasicMaterial({color: 0x00F400, transparent: true, opacity: 0.8});
+        const logMat = new THREE.MeshPhongMaterial({color: 0x4B371C});
+        const leafMat = new THREE.MeshPhongMaterial({color: 0x00F400, transparent: true, opacity: 0.8});
         var vertices; // For points
 
         // Logic management
@@ -220,6 +220,8 @@ function Tree(start, recursions) {
                     var mesh = new THREE.Mesh(geom, logMat);
                     mesh.position.set(lastPos[0] + (length / 2) * Math.cos(xAngle), lastPos[1] + (length / 2) * ((Math.sin(xAngle) + Math.sin(zAngle)) / 2), lastPos[2] + (length / 2) * Math.cos(zAngle));
                     mesh.rotation.set(Math.cos(zAngle), 0, -Math.cos(xAngle));
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
 
                     scene.add(mesh);
 
@@ -233,6 +235,8 @@ function Tree(start, recursions) {
                         mesh = new THREE.Mesh(geom, leafMat);
                         mesh.position.set(lastPos[0] + (length ** 0.5 / 2) * Math.cos(xAngle), lastPos[1] + (length ** 0.5 / 2) * ((Math.sin(xAngle) + Math.sin(zAngle)) / 2), lastPos[2] + (length ** 0.5 / 2) * Math.cos(zAngle));
                         mesh.rotation.set(Math.cos(zAngle), 0, -Math.cos(xAngle));
+                        mesh.castShadow = true;
+                        mesh.receiveShadow = true;
                         scene.add(mesh);
                         
                         this.group.add(mesh);
@@ -320,7 +324,7 @@ var sun = new THREE.Mesh( planetGeometry, sunMesh );
 var moon = new THREE.Mesh( planetGeometry, moonMesh );
 
 const color = 0xFFFFFF;
-const intensity = 10;
+const intensity = 1;
 var sunLight = new THREE.DirectionalLight(color, intensity);
 sunLight.target.position.set(0, 0, 0);
 sunGroup.add( sun );
