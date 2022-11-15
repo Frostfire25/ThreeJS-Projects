@@ -305,16 +305,63 @@ var tree4 = new Tree("B", 4);
 tree4.drawTree([20, 35, 45]);
 tree4.group.position.set(-3, -2, -7);
 
+// Adding in the sun and the moon geometries and rotations
+const pD = 100;
+const loader = new THREE.TextureLoader();
+var sunGroup = new THREE.Group();
+var moonGroup = new THREE.Group();
+var orbit = new THREE.Group();
 
+var planetGeometry = new THREE.SphereGeometry( 10, 32, 16 );
+var sunMesh = new THREE.MeshBasicMaterial( { color: 0xffff00, map: loader.load('./media/sun.png') } );
+var moonMesh = new THREE.MeshBasicMaterial( { color: 0xffff00, map: loader.load('./media/moon.png') } );
 
+var sun = new THREE.Mesh( planetGeometry, sunMesh );
+var moon = new THREE.Mesh( planetGeometry, moonMesh );
+
+const color = 0xFFFFFF;
+const intensity = 10;
+var sunLight = new THREE.DirectionalLight(color, intensity);
+sunLight.target.position.set(0, 0, 0);
+sunGroup.add( sun );
+sunGroup.add( sunLight );
+sunGroup.position.set(pD, pD, pD);
+
+moonGroup.add( moon );
+moonGroup.position.set(-pD, -pD, -pD);
+
+orbit.add( moonGroup );
+orbit.add( sunGroup );
+
+scene.add( orbit );
 
 // Keyboard Input Listener
 document.addEventListener('keydown', (e) => {
     if(e.key === "a") {/*Do nothing for now*/}
 });
 
+var clock = new THREE.Clock();
+var speed = 10; //units a second
+var delta = 0;
+var pos = 0;
+
+// Does the animation
+//  - Currently moves the sun and moon at 15 degrees per seccond. 
 function animate() {
     requestAnimationFrame(animate);
+
+    // Moves the sun and moon in a rotation.
+    delta = clock.getDelta();
+    pos += delta;
+    if(pos >= 0.25) {
+
+        orbit.rotation.z += 0.01;
+        console.log(orbit);
+
+        pos = 0;
+    }
+
+    console.log(delta);
 
     render();
 }
