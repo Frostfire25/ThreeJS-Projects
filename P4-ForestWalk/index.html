@@ -368,7 +368,7 @@ tree4.group.position.set(-3, -2, -7);
 
  // Define the 2D array
  // 2^12,
-const terrainSize = 256; 
+const terrainSize = 128; 
 var terrain = [];
 for(var i = 0; i < terrainSize + 1; i++) {
     terrain[i] = new Array(terrainSize + 1);
@@ -403,11 +403,12 @@ for(var i = 0; i < terrainSize; i++) {
         
         var random = getRandomArbitraryInt(0,10);
 
-        if(random > 5 && random < 7) {
-            terrain[i][j] = getRandomArbitraryInt(0,600);
-        } else if ( random > 7 ) {
-            terrain[i][j] = getRandomArbitraryInt(400,1000);
+        if(random > 7 && random < 8) {
+            terrain[i][j] = getRandomArbitraryInt(0,50);
+        } else if ( random > 8 ) {
+            terrain[i][j] = getRandomArbitraryInt(50,200);
         }
+        
 
     }
 }
@@ -424,27 +425,31 @@ console.log("After");
 console.log(terrain);
 
 // Map the heights to a geometry
-var geom = new THREE.PlaneGeometry(terrainSize, terrainSize);
+var geom = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize, terrainSize);
 var mat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide});
 
 var verts = [];
 
-for(var i = 0; i < (terrainSize + 1)**2; i++) {
-    verts[i] = terrain[i % (terrainSize + 1)][Math.floor(i / (terrainSize + 1))];
+for(var i = 0; i < (terrainSize+1)**2; i++) {
+    verts[i] = terrain[i % (terrainSize+1)][Math.floor(i / (terrainSize+1))];
 }
 
-console.log("Verts of geom");
+console.log("Verts of Geom");
 console.log(verts);
+
+console.log(geom);
 
 for ( var i = 0; i < geom.vertices.length; i++ ) {
     geom.vertices[i].z = verts[i] * 0.02;
 }
+
 
 geom.verticesNeedUpdate = true;
 geom.computeFaceNormals();
 geom.computeVertexNormals();
 
 function doFractile(ter, tl, tr, bl, br) {
+
     // Base case
     if(tl[0] + 1 == tr[0] || tl[0] + 1 == bl[0])
         return;
@@ -517,6 +522,11 @@ sunGroup.add( sun );
 sunGroup.add( sunLight );
 sunGroup.position.set(pD, pD, pD);
 
+const moonColor = 0xd8e9f7;
+const moonIntensity = 0.75;
+var moonLight = new THREE.DirectionalLight(moonColor, moonIntensity);
+moonLight.target.position.set(0, 0, 0);
+moonGroup.add( moonLight );
 moonGroup.add( moon );
 moonGroup.position.set(-pD, -pD, -pD);
 
