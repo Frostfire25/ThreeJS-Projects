@@ -10,6 +10,56 @@
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
 
+/**
+ * Utility Methods
+ */ 
+
+// Objects & Functions
+// Gets a random number
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomArbitrary(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// Gets a random integer
+// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomArbitraryInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Shuffles an array
+// https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
+function shuffle(array) {
+  let currentIndex = array.length,  randomIndex;
+
+  // While there remain elements to shuffle.
+  while (currentIndex != 0) {
+
+    // Pick a remaining element.
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+
+  return array;
+}
+
+/**
+ * Determines if an array has duplicate objects
+ * https://stackoverflow.com/questions/7376598/in-javascript-how-do-i-check-if-an-array-has-duplicate-values
+ */
+function hasDuplicates(a) {
+
+    const noDups = new Set(a);
+    return a.length !== noDups.size;
+}
+
+
 // Define scene
 var scene = new THREE.Scene();
 
@@ -289,10 +339,11 @@ function Tree(start, recursions) {
     }
 }
 
+/**
 var tree = new Tree("B", 4);
 //tree.drawTwig([0,0], 35, Math.PI / 4);
 //tree.instructions = "B[+F]-F"
-tree.drawTree([20, 35, 45/*, 60, 90, 110, 130*/]);
+tree.drawTree([20, 35, 45, 60, /*90, 110, 130]);
 //tree.group.position.set(5, -2, -5);
 tree.group.position.set(0, -2, 0);
 
@@ -308,6 +359,145 @@ tree3.group.position.set(1, -2, -4);
 var tree4 = new Tree("B", 4);
 tree4.drawTree([20, 35, 45]);
 tree4.group.position.set(-3, -2, -7);
+*/
+
+/**
+ * Adding in the terrain
+ * 
+ */
+
+ // Define the 2D array
+ // 2^12,
+const terrainSize = 128; 
+var terrain = [];
+for(var i = 0; i < terrainSize + 1; i++) {
+    terrain[i] = new Array(terrainSize + 1);
+    for(var j = 0; j < terrainSize + 1; j++) {
+        terrain[i][j] = -1;
+    }
+}
+
+// Define 4 corners
+terrain[0][0] = 100; // TL
+terrain[terrainSize][0] = 130; // TR
+terrain[0][terrainSize] = 200; // BL
+terrain[terrainSize][terrainSize] = 160; // BR
+
+var lowRange = 0;
+var highRange = 1000;
+
+// Define center
+terrain[terrainSize/2][terrainSize/2] = getRandomArbitraryInt(highRange/2, highRange);
+
+// Define random points center
+
+/**
+terrain[32][64] = 1000;
+terrain[24][56] = 670;
+terrain[64][96] = 600;
+**/
+
+// Loops through every point.
+for(var i = 0; i < terrainSize; i++) {
+    for(var j = 0; j < terrainSize; j++) {
+        
+        var random = getRandomArbitraryInt(0,10);
+
+        if(random > 5 && random < 7) {
+            terrain[i][j] = getRandomArbitraryInt(0,600);
+        } else if ( random > 7 ) {
+            terrain[i][j] = getRandomArbitraryInt(400,1000);
+        }
+
+    }
+}
+
+//console.log(terrain);
+
+// Perform the fractilized smoothing
+console.log("Before");
+console.log(terrain);
+
+doFractile(terrain, [0,0], [terrainSize,0], [0,terrainSize], [terrainSize,terrainSize]);
+
+console.log("After");
+console.log(terrain);
+
+// Map the heights to a geometry
+var geom = new THREE.PlaneGeometry(terrainSize, terrainSize);
+var mat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide});
+
+var verts = [];
+
+for(var i = 0; i < (terrainSize + 1)**2; i++) {
+    verts[i] = terrain[i % (terrainSize + 1)][Math.floor(i / (terrainSize + 1))];
+}
+
+console.log("Verts of geom");
+console.log(verts);
+
+for ( var i = 0; i < geom.vertices.length; i++ ) {
+    geom.vertices[i].z = verts[i] * 0.02;
+}
+
+
+// itemSize = 3 because there are 3 values (components) per vertex
+geometry.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
+
+geom.verticesNeedUpdate = true;
+geom.computeFaceNormals();
+geom.computeVertexNormals();
+
+function doFractile(ter, tl, tr, bl, br) {
+    // Base case
+    if(tl[0] + 1 == tr[0] || tl[0] + 1 == bl[0])
+        return;
+
+    var center = [(tl[0] + tr[0]) / 2, (tl[1] + bl[1]) / 2];
+    
+    if(ter[center[0]][center[1]] == -1) { // If no center value is present, compute center
+        ter[center[0]][center[1]] = (
+            ter[tl[0]][tl[1]] +
+            ter[tr[0]][tr[1]] +
+            ter[bl[0]][bl[1]] +
+            ter[br[0]][br[1]]
+        ) / 4;
+    }
+    // Compute sides
+    // Left
+    var left = [tl[0], center[1]];
+    if(ter[left[0]][left[1]] == -1)
+        ter[left[0]][left[1]] = (ter[tl[0]][tl[1]] + ter[bl[0]][bl[1]]) / 2; // Avg of tl and bl
+    // Right
+    var right = [tr[0], center[1]];
+    if(ter[right[0]][right[1]] == -1)
+        ter[right[0]][right[1]] = (ter[tr[0]][tr[1]] + ter[br[0]][br[1]]) / 2; // Avg of tr and br
+    // Top
+    var top = [center[0], tl[1]];
+    if(ter[top[0]][top[1]] == -1)
+        ter[top[0]][top[1]] = (ter[tl[0]][tl[1]] + ter[tr[0]][tr[1]]) / 2; // Avg of tl and tr
+    // Bottom
+    var bottom = [center[0], bl[1]];
+    if(ter[bottom[0]][bottom[1]] == -1)
+        ter[bottom[0]][bottom[1]] = (ter[bl[0]][bl[1]] + ter[br[0]][br[1]]) / 2; // Avg of bl and br
+
+    // Call for four quadrants
+    doFractile(ter, tl, top, left, center);       // Top left quadrant
+    doFractile(ter, top, tr, center, right);      // Top right quadrant
+    doFractile(ter, left, center, bl, bottom);    // Bottom left quadrant
+    doFractile(ter, center, right, bottom, br);   // Bottom right quadrant
+    
+}
+
+var plane = new THREE.Mesh(geom, mat);
+
+plane.rotation.x -= Math.PI / 2;
+
+plane.castShadow = true;
+plane.receiveShadow = true;
+
+scene.add(plane);
+
 
 // Adding in the sun and the moon geometries and rotations
 const pD = 100;
