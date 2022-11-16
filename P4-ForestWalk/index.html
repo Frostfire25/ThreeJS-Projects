@@ -368,7 +368,7 @@ tree4.group.position.set(-3, -2, -7);
 
  // Define the 2D array
  // 2^12,
-const terrainSize = 128; 
+const terrainSize = 256; 
 var terrain = [];
 for(var i = 0; i < terrainSize + 1; i++) {
     terrain[i] = new Array(terrainSize + 1);
@@ -439,10 +439,6 @@ console.log(verts);
 for ( var i = 0; i < geom.vertices.length; i++ ) {
     geom.vertices[i].z = verts[i] * 0.02;
 }
-
-
-// itemSize = 3 because there are 3 values (components) per vertex
-geometry.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
 
 geom.verticesNeedUpdate = true;
 geom.computeFaceNormals();
