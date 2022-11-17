@@ -740,7 +740,7 @@ const crosshair = loader.load('./media/mycrosshair.png');
 crosshair.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
 var sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: crosshair, fog: false, depthTest: false, depthWrite: false}));
-sprite.scale.set(1, 0.30 * camera.aspect, 1)
+sprite.scale.set(0.5, 0.075 * camera.aspect, 0.5)
 sprite.position.set(0, 0, 0);
 scene.add( sprite );
 console.log( sprite );
@@ -774,8 +774,8 @@ function moveCamera( direction ) {
         }
     }
 
-    var vector = new THREE.Vector3(); // create once and reuse it!
-    camera.getWorldDirection( vector );
+    //var vector = new THREE.Vector3(); // create once and reuse it!
+    //camera.getWorldDirection( vector );
     //console.log(vector);
 
     // Move in the direction
@@ -811,11 +811,29 @@ function moveCamera( direction ) {
 
 
     // Update the crosshair postion
-    sprite.position.set(camera.position.x + 5, camera.position.y, camera.position.z);
+    //sprite.position.set(camera.position.x + 5, camera.position.y, camera.position.z);
 
     render();
 
 }
+
+/**
+ * Updates the sprites position based on the camera
+ */ 
+
+function updateSpritePosition() {
+    var vector = new THREE.Vector3(); // create once and reuse it!
+    camera.getWorldDirection( vector );
+
+    sprite.position.set(camera.position.x + vector.x, camera.position.y + vector.y, camera.position.z + vector.z);
+}
+
+    //var vector = new THREE.Vector3(); // create once and reuse it!
+    //camera.getWorldDirection( vector );
+
+    //sprite.position.set(camera.position.x + 5, camera.position.y, camera.position.z);
+
+
 
 camera.position.set(0, 12, 0);
 camera.lookAt( new THREE.Vector3(0,12.0,0.0));
@@ -884,6 +902,9 @@ function animate() {
         moveCamera( 'w' );
         firstRender = false;
     }
+    
+    // Animate the crosshair (sprite) every time we render
+    updateSpritePosition();
 
     // Moves the sun and moon in a rotation.
     delta = clock.getDelta();
