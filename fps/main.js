@@ -360,7 +360,7 @@ class FirstPersonCameraDemo {
     }
 
     // Crosshair
-    const crosshair = mapLoader.load('resources/crosshair.png');
+    const crosshair = mapLoader.load('./media/crosshair.png');
     crosshair.anisotropy = maxAnisotropy;
 
     this.sprite_ = new THREE.Sprite(

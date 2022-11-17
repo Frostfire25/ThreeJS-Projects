@@ -618,8 +618,8 @@ var plane = new THREE.Mesh(geom, mat);
 
 plane.rotation.x -= Math.PI / 2;
 
-plane.castShadow = true;
-plane.receiveShadow = true;
+plane.castShadow = false;
+plane.receiveShadow = false;
 
 // Adding the terrain mapped to plane
 scene.add( plane );
@@ -643,16 +643,16 @@ const intensity = 1;
 var sunLight = new THREE.DirectionalLight(color, intensity);
 sunLight.target.position.set(0, 0, 0);
 
-/**
+/*
 sunLight.shadow.camera.near = 0.5;       
-sunLight.shadow.camera.far = 2000;      
+sunLight.shadow.camera.far = 5000;      
 sunLight.shadow.camera.left = -pD ;
 sunLight.shadow.camera.bottom = -pD;
 sunLight.shadow.camera.right = pD ;
 sunLight.shadow.camera.top = pD;
 */
-
 sunLight.castShadow = true;
+
 sunGroup.add( sun );
 sunGroup.add( sunLight );
 sunGroup.position.set(pD, pD, pD);
@@ -721,8 +721,29 @@ for(var i = 0; i < getRandomArbitraryInt(50,100); i++) {
 document.addEventListener('keydown', (e) => {
     //if(e.key === "a") {/*Do nothing for now*/}
 
+    switch(e.key) {
+        case 'o': {
+            camera.lookAt(sunGroup.position);
+            return;
+        }; 
+        case 'p': {
+            camera.lookAt(moonGroup.position);
+            return;
+        };
+    }
+
     moveCamera(e.key);
 });
+
+// Crosshair
+const crosshair = loader.load('./media/mycrosshair.png');
+crosshair.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+var sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: crosshair, fog: false, depthTest: false, depthWrite: false}));
+sprite.scale.set(1, 0.30 * camera.aspect, 1)
+sprite.position.set(0, 0, 0);
+scene.add( sprite );
+console.log( sprite );
 
 const raycaster = new THREE.Raycaster();
 // Moves the camera based on the input direction
@@ -788,6 +809,10 @@ function moveCamera( direction ) {
         camera.position.y = (camera.position.y - intersects[0].distance) + 2;
     }
 
+
+    // Update the crosshair postion
+    sprite.position.set(camera.position.x + 5, camera.position.y, camera.position.z);
+
     render();
 
 }
@@ -841,16 +866,6 @@ function moveClbk(e) {
 }
 renderer.domElement.addEventListener('mousedown', downClbk);
 renderer.domElement.addEventListener('mouseup', upClbk);
-
-
-
-// Crosshair
-var sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: loader.load('media/mycrosshair.png'), fog: false, depthTest: false, depthWrite: false}));
-//sprite.scale.set(0.15, 0.15 * camera.aspect, 1)
-sprite.position.set(0, 0, 0);
-scene.add( sprite );
-console.log( sprite );
-
 
 var clock = new THREE.Clock();
 var speed = 10; //units a second
