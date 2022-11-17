@@ -63,6 +63,9 @@ function hasDuplicates(a) {
 // Define scene
 var scene = new THREE.Scene();
 
+// Define texture loader
+const loader = new THREE.TextureLoader();
+
 // Camera
 var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
 camera.position.set(0, 0, 10);
@@ -426,7 +429,7 @@ console.log(terrain);
 
 // Map the heights to a geometry
 var geom = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize, terrainSize);
-var mat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide});
+var mat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide, map: loader.load('./media/terrain.png')});
 
 var verts = [];
 
@@ -502,7 +505,6 @@ scene.add(plane);
 
 // Adding in the sun and the moon geometries and rotations
 const pD = 100;
-const loader = new THREE.TextureLoader();
 var sunGroup = new THREE.Group();
 var moonGroup = new THREE.Group();
 var orbit = new THREE.Group();
