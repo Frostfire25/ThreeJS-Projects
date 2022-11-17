@@ -9,6 +9,8 @@
 <script type="module">
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
+//import { MeshSurfaceSampler } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/MeshSurfaceSampler.js";
+import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier2d-compat';
 
 /**
  * Utility Methods
@@ -67,9 +69,7 @@ var scene = new THREE.Scene();
 const loader = new THREE.TextureLoader();
 
 // Camera
-var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-camera.position.set(0, 0, 10);
-camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight * 2, .1, 3000 );
 scene.add( camera );
 
 // Define renderer
@@ -79,7 +79,17 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 
-const controls = new OrbitControls(camera, renderer.domElement);
+// Got function from https://codepen.io/anon/pen/qNNNzJ
+window.addEventListener('resize', function(e){
+  var width = window.innerWidth, height = window.innerHeight;
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+  renderer.render(scene, camera);
+});
+
+//const orbinControls = new OrbitControls(camera, renderer.domElement);
+//orbinControls.enableDamping = false;
 
 function Tree(start, recursions) {
     this.group = new THREE.Group();
@@ -342,7 +352,17 @@ function Tree(start, recursions) {
     }
 }
 
+
+
+
 /**
+ * var tree = new Tree("B", 4);
+//tree.drawTwig([0,0], 35, Math.PI / 4);
+//tree.instructions = "B[+F]-F"
+tree.drawTree([20, 35, 45, 60, /*90, 110, 130 ]);
+//tree.group.position.set(5, -2, -5);
+tree.group.position.set(0, 2, 0);
+
 var tree = new Tree("B", 4);
 //tree.drawTwig([0,0], 35, Math.PI / 4);
 //tree.instructions = "B[+F]-F"
@@ -371,7 +391,7 @@ tree4.group.position.set(-3, -2, -7);
 
  // Define the 2D array
  // 2^12,
-const terrainSize = 128; 
+const terrainSize = 512; 
 var terrain = [];
 for(var i = 0; i < terrainSize + 1; i++) {
     terrain[i] = new Array(terrainSize + 1);
@@ -404,12 +424,14 @@ terrain[64][96] = 600;
 for(var i = 0; i < terrainSize; i++) {
     for(var j = 0; j < terrainSize; j++) {
         
-        var random = getRandomArbitraryInt(0,10);
+        var random = getRandomArbitraryInt(0,50);
 
-        if(random > 7 && random < 8) {
+        if(random > 30 && random <= 40) {
             terrain[i][j] = getRandomArbitraryInt(0,50);
-        } else if ( random > 8 ) {
-            terrain[i][j] = getRandomArbitraryInt(200,600);
+        } else if ( random > 40 && random <= 48) {
+            terrain[i][j] = getRandomArbitraryInt(50,150);
+        } else if(random > 48) {
+            terrain[i][j] = getRandomArbitrary(150,450);
         }
 
     }
@@ -425,7 +447,7 @@ smoothTerrain(terrain, 2);
 
 // Map the heights to a geometry
 var geom = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize, terrainSize);
-var mat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide, map: loader.load('./media/terrain.png')});
+var mat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide, map: loader.load('./media/grass.png')});
 
 var verts = [];
 
@@ -433,10 +455,10 @@ for(var i = 0; i < (terrainSize+1)**2; i++) {
     verts[i] = terrain[i % (terrainSize+1)][Math.floor(i / (terrainSize+1))];
 }
 
-console.log("Verts of Geom");
-console.log(verts);
+//console.log("Verts of Geom");
+//console.log(verts);
 
-console.log(geom);
+//console.log(geom);
 
 for ( var i = 0; i < geom.vertices.length; i++ ) {
     geom.vertices[i].z = verts[i] * 0.02;
@@ -599,11 +621,12 @@ plane.rotation.x -= Math.PI / 2;
 plane.castShadow = true;
 plane.receiveShadow = true;
 
-scene.add(plane);
+// Adding the terrain mapped to plane
+scene.add( plane );
 
 
 // Adding in the sun and the moon geometries and rotations
-const pD = 100;
+const pD = 250;
 var sunGroup = new THREE.Group();
 var moonGroup = new THREE.Group();
 var orbit = new THREE.Group();
@@ -616,7 +639,7 @@ var sun = new THREE.Mesh( planetGeometry, sunMesh );
 var moon = new THREE.Mesh( planetGeometry, moonMesh );
 
 const color = 0xFFFFFF;
-const intensity = 1;
+const intensity = 2;
 var sunLight = new THREE.DirectionalLight(color, intensity);
 sunLight.target.position.set(0, 0, 0);
 sunGroup.add( sun );
@@ -636,27 +659,156 @@ orbit.add( sunGroup );
 
 scene.add( orbit );
 
+/**
+ * Draw Tree's on terrain
+ */ 
+
+var trees = [];
+
+// Spawn trees
+const treeRaycaster = new THREE.Raycaster();
+for(var i = 0; i < getRandomArbitraryInt(10,20); i++) {
+    var tree = new Tree("B", 4);
+    tree.drawTree([20, 35, 45, 60, /*90, 110, 130 */]);
+
+    tree.group.position.set(getRandomArbitraryInt(-terrainSize, terrainSize), 100, (-terrainSize, terrainSize));
+    // Change camera y according to raycasting
+    treeRaycaster.set(tree.group.position, new THREE.Vector3(0, -1, 0).normalize());
+    const intersects = treeRaycaster.intersectObject( plane );
+
+
+    // If we do not interset, go up and try again
+    if(intersects.length <= 0) {
+
+    } 
+    // We have an intersection, use 0
+    else {
+        tree.group.position.y = (tree.group.position.y - intersects[0].distance);
+    }
+
+    console.log(tree.group.position);
+
+    trees.push(tree);
+}
+
+//var raycaster = new THREE.Raycaster();
+//var pointer = new THREE.Vector2();
+
 // Keyboard Input Listener
 document.addEventListener('keydown', (e) => {
-    if(e.key === "a") {/*Do nothing for now*/}
+    //if(e.key === "a") {/*Do nothing for now*/}
+
+    moveCamera(e.key);
 });
+
+const raycaster = new THREE.Raycaster();
+// Moves the camera based on the input direction
+function moveCamera( direction ) {
+    const moveSpeed = 0.5;
+
+    // If out of bounds return
+    // If hitting a tree return
+
+    var vector = new THREE.Vector3(); // create once and reuse it!
+    camera.getWorldDirection( vector );
+    //console.log(vector);
+
+    // Move in the direction
+    switch( direction ) {
+        case 'w': {
+            camera.translateZ(-moveSpeed);            
+        }; break;
+        case 'a': {
+            camera.translateX(-moveSpeed);
+        }; break;
+        case 's': {
+            camera.translateZ(moveSpeed);
+        }; break;
+        case 'd': {
+            camera.translateX(moveSpeed);
+        }; break;
+    }
+    
+    // Change camera y according to raycasting
+    raycaster.set(camera.position, new THREE.Vector3(0, -1, 0).normalize());
+    const intersects = raycaster.intersectObject( plane );
+
+    // If we do not interset, go up and try again
+    if(intersects.length <= 0) {
+
+    } 
+    // We have an intersection, use 0
+    else {
+        camera.position.y = (camera.position.y - intersects[0].distance) + 2;
+    }
+
+    //console.log(intersects);
+    render();
+}
+
+camera.position.set(0, 12, 0);
+camera.lookAt( new THREE.Vector3(0,12.0,0.0));
+
+/* Mouse Moving
+Got assistance from https://stackoverflow.com/questions/37837189/turning-around-using-mouse-in-three-js
+*/
+
+
+var startX, startY;
+function downClbk(e) {
+  renderer.domElement.addEventListener('mousemove', moveClbk);
+  startX = e.clientX; startY = e.clientY;
+}
+function upClbk(e) {
+  renderer.domElement.removeEventListener('mousemove', moveClbk);
+}
+function moveClbk(e) {
+  var delX = e.clientX - startX;
+  var delY = e.clientY - startY;
+  var width = window.innerWidth, height = window.innerHeight, min = Math.min(width, height);
+  camera.rotation.x += delY/min;
+  camera.rotation.y += delX/min;
+  startX = e.clientX; startY = e.clientY;
+  //renderer.render(scene, camera);
+}
+renderer.domElement.addEventListener('mousedown', downClbk);
+renderer.domElement.addEventListener('mouseup', upClbk);
+
+
+
+// Crosshair
+var crosshair = loader.load('media/mycrosshair.png');
+
+var sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: crosshair, color: 0xffffff, fog: false, depthTest: false, depthWrite: false}));
+sprite.scale.set(0.15, 0.15 * camera.aspect, 1)
+sprite.position.set(0, 0, -10);
+
+scene.add( sprite );
 
 var clock = new THREE.Clock();
 var speed = 10; //units a second
 var delta = 0;
 var pos = 0;
 
+var firstRender = true;
+
 // Does the animation
 //  - Currently moves the sun and moon at 15 degrees per seccond. 
 function animate() {
     requestAnimationFrame(animate);
+
+    // Move the camera to the right position.
+    if(firstRender) {
+        moveCamera( 'w' );
+        firstRender = false;
+    }
 
     // Moves the sun and moon in a rotation.
     delta = clock.getDelta();
     pos += delta;
     if(pos >= 0.25) {
 
-        orbit.rotation.z += 0.01; 
+        orbit.rotation.z += 0.002; 
         //console.log(orbit);
 
         pos = 0;
@@ -664,12 +816,31 @@ function animate() {
 
     //console.log(delta);
 
+    /**
+     * Determening distance from camera
+     */ 
+
+    //raycaster.setFromCamera( pointer, camera );
+    //raycaster.set ( new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z), new THREE.Vector3(camera.position.x, 0, camera.position.z) );
+
+	// calculate objects intersecting the picking ray
+	//const intersects = raycaster.intersectObjects( scene.children );
+    //console.log("Intersects.");
+    //console.log(intersects);
+
+	//for ( let i = 0; i < intersects.length; i ++ ) {
+	//	intersects[ i ].object.material.color.set( 0xff0000 );
+	//}
+
+
     render();
 }
+
 
 function render() {
     renderer.render(scene, camera);
 }
+
 
 // Initiate graphical loop
 animate();
