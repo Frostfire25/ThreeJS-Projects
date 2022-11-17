@@ -248,8 +248,8 @@ function Tree(start, recursions) {
         var zAngle = 90 * Math.PI / 180;
 
         // Size / Position management
-        var length = 1;
-        var rad = .1;
+        var length = 2.5;
+        var rad = .25;
         var lastPos = [0, 0, 0];
         var newPos = [0, 0, 0];
 
@@ -409,23 +409,19 @@ for(var i = 0; i < terrainSize; i++) {
         if(random > 7 && random < 8) {
             terrain[i][j] = getRandomArbitraryInt(0,50);
         } else if ( random > 8 ) {
-            terrain[i][j] = getRandomArbitraryInt(50,200);
+            terrain[i][j] = getRandomArbitraryInt(200,600);
         }
-        
 
     }
 }
 
+
+
 //console.log(terrain);
 
 // Perform the fractilized smoothing
-console.log("Before");
-console.log(terrain);
-
 doFractile(terrain, [0,0], [terrainSize,0], [0,terrainSize], [terrainSize,terrainSize]);
-
-console.log("After");
-console.log(terrain);
+smoothTerrain(terrain, 2);
 
 // Map the heights to a geometry
 var geom = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize, terrainSize);
@@ -444,6 +440,13 @@ console.log(geom);
 
 for ( var i = 0; i < geom.vertices.length; i++ ) {
     geom.vertices[i].z = verts[i] * 0.02;
+    
+    /*// There is a 1 in 1000 chance a tree spawns on this vertex
+    if(getRandomArbitraryInt(0, 1000) <= 1) {
+        var tree = new Tree("B", 4);
+        tree.drawTree([25, 35, 45]);
+        tree.group.position.set(geom.vertices[i].x, verts[i] * 0.02, geom.vertices[i].y);
+    }*/
 }
 
 
@@ -460,7 +463,7 @@ function doFractile(ter, tl, tr, bl, br) {
     var center = [(tl[0] + tr[0]) / 2, (tl[1] + bl[1]) / 2];
     
     if(ter[center[0]][center[1]] == -1) { // If no center value is present, compute center
-        ter[center[0]][center[1]] = (
+        ter[center[0]][center[1]] = ( // Smooth the center
             ter[tl[0]][tl[1]] +
             ter[tr[0]][tr[1]] +
             ter[bl[0]][bl[1]] +
@@ -470,20 +473,24 @@ function doFractile(ter, tl, tr, bl, br) {
     // Compute sides
     // Left
     var left = [tl[0], center[1]];
-    if(ter[left[0]][left[1]] == -1)
+    if(ter[left[0]][left[1]] == -1) {
         ter[left[0]][left[1]] = (ter[tl[0]][tl[1]] + ter[bl[0]][bl[1]]) / 2; // Avg of tl and bl
+    }
     // Right
     var right = [tr[0], center[1]];
-    if(ter[right[0]][right[1]] == -1)
+    if(ter[right[0]][right[1]] == -1) {
         ter[right[0]][right[1]] = (ter[tr[0]][tr[1]] + ter[br[0]][br[1]]) / 2; // Avg of tr and br
+    }
     // Top
     var top = [center[0], tl[1]];
-    if(ter[top[0]][top[1]] == -1)
+    if(ter[top[0]][top[1]] == -1) {
         ter[top[0]][top[1]] = (ter[tl[0]][tl[1]] + ter[tr[0]][tr[1]]) / 2; // Avg of tl and tr
+    }
     // Bottom
     var bottom = [center[0], bl[1]];
-    if(ter[bottom[0]][bottom[1]] == -1)
+    if(ter[bottom[0]][bottom[1]] == -1) {
         ter[bottom[0]][bottom[1]] = (ter[bl[0]][bl[1]] + ter[br[0]][br[1]]) / 2; // Avg of bl and br
+    }
 
     // Call for four quadrants
     doFractile(ter, tl, top, left, center);       // Top left quadrant
@@ -491,6 +498,98 @@ function doFractile(ter, tl, tr, bl, br) {
     doFractile(ter, left, center, bl, bottom);    // Bottom left quadrant
     doFractile(ter, center, right, bottom, br);   // Bottom right quadrant
     
+}
+
+function smoothTerrain(ter, numTimes) {
+    console.log("Smoothing terrain");
+    for(var t = 0; t < numTimes; t++) { // Do it this many times
+        // Do the corners
+        // 1: Top left
+        ter[0][0] = (
+            ter[0][1] +
+            ter[1][1] +
+            ter[1][0]
+        ) / 3;
+        // 2: Top right
+        ter[terrainSize][0] = (
+            ter[terrainSize - 1][0] +
+            ter[terrainSize - 1][1] +
+            ter[terrainSize][1]
+        ) / 3;
+        // 3: Bottom left
+        ter[0][terrainSize] = (
+            ter[0][terrainSize-1] +
+            ter[1][terrainSize-1] +
+            ter[1][terrainSize]
+        ) / 3;
+        // 4: Bottom right
+        ter[terrainSize][terrainSize] = (
+            ter[terrainSize][terrainSize-1] +
+            ter[terrainSize-1][terrainSize-1] +
+            ter[terrainSize-1][terrainSize]
+        ) / 3;
+
+        // Do the other points
+        for(var i = 0; i < terrainSize; i++) {
+            for(var j = 0; j < terrainSize; j++) { // Average the heights of all the surrounding vertices
+                // Case 0: Skip if it is a corner
+                if((i==0&&j==0) || (i==0&&j==terrainSize) || (i==terrainSize&&j==0) || (i==terrainSize&&j==terrainSize))
+                    continue;
+                // Case 1: On left side (i = 0)
+                if(i == 0) {
+                    ter[i][j] = (
+                        ter[i][j-1] +       // Top mid
+                        ter[i+1][j-1] +     // Top right
+                        ter[i+1][j] +       // Mid right
+                        ter[i][j+1] +       // Bot mid
+                        ter[i+1][j+1]       // Bot right
+                    ) / 5;
+                }
+                // Case 2: On right side (i = terrainSize)
+                else if(i == terrainSize) {
+                    ter[i][j] = (
+                        ter[i-1][j-1] +     // Top left
+                        ter[i][j-1] +       // Top mid
+                        ter[i-1][j] +       // Mid left
+                        ter[i-1][j+1] +     // Bot left
+                        ter[i][j+1]         // Bot mid
+                    ) / 5;
+                }
+                // Case 3: On top side (j = 0)
+                else if(j == 0) {
+                    ter[i][j] = (
+                        ter[i-1][j] +       // Mid left
+                        ter[i+1][j] +       // Mid right
+                        ter[i-1][j+1] +     // Bot left
+                        ter[i][j+1] +       // Bot mid
+                        ter[i+1][j+1]       // Bot right
+                    ) / 5;
+                }
+                // Case 4: On bottom side (j = terrainSize)
+                else if(j == terrainSize) {
+                    ter[i][j] = (
+                        ter[i-1][j-1] +     // Top left
+                        ter[i][j-1] +       // Top mid
+                        ter[i+1][j-1] +     // Top right
+                        ter[i-1][j] +       // Mid left
+                        ter[i+1][j]        // Mid right
+                    ) / 5;
+                }
+                else { // Otherwise
+                    ter[i][j] = (
+                        ter[i-1][j-1] +     // Top left
+                        ter[i][j-1] +       // Top mid
+                        ter[i+1][j-1] +     // Top right
+                        ter[i-1][j] +       // Mid left
+                        ter[i+1][j] +       // Mid right
+                        ter[i-1][j+1] +     // Bot left
+                        ter[i][j+1] +       // Bot mid
+                        ter[i+1][j+1]       // Bot right
+                    ) / 8;
+                }
+            }
+        }
+    }
 }
 
 var plane = new THREE.Mesh(geom, mat);
@@ -558,12 +657,12 @@ function animate() {
     if(pos >= 0.25) {
 
         orbit.rotation.z += 0.01; 
-        console.log(orbit);
+        //console.log(orbit);
 
         pos = 0;
     }
 
-    console.log(delta);
+    //console.log(delta);
 
     render();
 }
