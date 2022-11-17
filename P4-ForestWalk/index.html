@@ -102,6 +102,21 @@ window.addEventListener('resize', function(e){
   renderer.render(scene, camera);
 });
 
+// Adding sky background.
+// Assistance and method from https://www.youtube.com/watch?v=oqKzxPMLWxo
+const skyLoader = new THREE.CubeTextureLoader();
+    const texture = skyLoader.load([
+      './media/background-sized.png',
+      './media/background-sized.png',
+      './media/background-sized.png',
+      './media/background-sized.png',
+      './media/background-sized.png',
+      './media/background-sized.png',
+  ]);
+
+texture.encoding = THREE.sRGBEncoding;
+scene.background = texture;
+
 //const orbinControls = new OrbitControls(camera, renderer.domElement);
 //orbinControls.enableDamping = false;
 const controls = new PointerLockControls( camera, document.body );
