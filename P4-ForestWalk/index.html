@@ -78,6 +78,7 @@ renderer.setClearColor(0x000000);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
 
 // Got function from https://codepen.io/anon/pen/qNNNzJ
 window.addEventListener('resize', function(e){
@@ -446,7 +447,7 @@ smoothTerrain(terrain, 2);
 
 // Map the heights to a geometry
 var geom = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize, terrainSize);
-var mat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide, map: loader.load('./media/grass.png')});
+var mat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide, map: loader.load('./media/terrain.png')});
 
 var verts = [];
 
@@ -638,17 +639,38 @@ var sun = new THREE.Mesh( planetGeometry, sunMesh );
 var moon = new THREE.Mesh( planetGeometry, moonMesh );
 
 const color = 0xFFFFFF;
-const intensity = 2;
+const intensity = 1;
 var sunLight = new THREE.DirectionalLight(color, intensity);
 sunLight.target.position.set(0, 0, 0);
+
+/**
+sunLight.shadow.camera.near = 0.5;       
+sunLight.shadow.camera.far = 2000;      
+sunLight.shadow.camera.left = -pD ;
+sunLight.shadow.camera.bottom = -pD;
+sunLight.shadow.camera.right = pD ;
+sunLight.shadow.camera.top = pD;
+*/
+
+sunLight.castShadow = true;
 sunGroup.add( sun );
 sunGroup.add( sunLight );
 sunGroup.position.set(pD, pD, pD);
 
 const moonColor = 0xd8e9f7;
-const moonIntensity = 0.75;
+const moonIntensity = 0.25;
 var moonLight = new THREE.DirectionalLight(moonColor, moonIntensity);
 moonLight.target.position.set(0, 0, 0);
+/**
+moonLight.shadow.camera.near = 0.5;       
+moonLight.shadow.camera.far = 5000;      
+moonLight.shadow.camera.left = -500;
+moonLight.shadow.camera.bottom = -500;
+moonLight.shadow.camera.right = 500;
+moonLight.shadow.camera.top = 500;
+**/
+
+moonLight.castShadow = true;
 moonGroup.add( moonLight );
 moonGroup.add( moon );
 moonGroup.position.set(-pD, -pD, -pD);
@@ -677,9 +699,6 @@ for(var i = 0; i < getRandomArbitraryInt(50,100); i++) {
     treeRaycaster.set(tree.group.position, new THREE.Vector3(0, -1, 0).normalize());
     const intersects = treeRaycaster.intersectObject( plane );
 
-    console.log("Tree intersects");
-    console.log(intersects);
-
     // If we do not interset, go up and try again
     if(intersects.length <= 0) {
 
@@ -689,12 +708,11 @@ for(var i = 0; i < getRandomArbitraryInt(50,100); i++) {
        tree.group.position.y = (tree.group.position.y - intersects[0].distance);
     }
 
-    console.log(tree.group.position);
+    tree.group.castShadow = true;
+    tree.group.receiveShadow = true;
 
     trees.push(tree);
 }
-console.log("Trees generated");
-
 
 //var raycaster = new THREE.Raycaster();
 //var pointer = new THREE.Vector2();
@@ -726,6 +744,14 @@ function moveCamera( direction ) {
     }
     
     // If hitting a tree return
+
+    // Tree collision detection
+    for(var i = 0; i < trees.length; i++) {
+        if(isColliding(camera, trees[i].group)) {
+            camera.translateZ(moveSpeed * sendBackMoveSpeedMultiplier);
+            console.log("Collission with tree.");
+        }
+    }
 
     var vector = new THREE.Vector3(); // create once and reuse it!
     camera.getWorldDirection( vector );
@@ -762,20 +788,40 @@ function moveCamera( direction ) {
         camera.position.y = (camera.position.y - intersects[0].distance) + 2;
     }
 
-    //console.log(intersects);
     render();
 
-    console.log(camera.position);
 }
 
 camera.position.set(0, 12, 0);
 camera.lookAt( new THREE.Vector3(0,12.0,0.0));
 
+// Help from Three.js Discussion form
+// https://discourse.threejs.org/t/collisions-two-objects/4125/3 
+function isColliding(camera, group) {
+
+    // Update the boxes for object
+    //group.geometry.computeBoundingBox();
+    group.updateMatrixWorld();
+  
+    var cameraBox = new THREE.Box3(
+        new THREE.Vector3(camera.position.x - 1, camera.position.y - 1, camera.position.z - 1),
+        new THREE.Vector3(camera.position.x + 1, camera.position.y + 1, camera.position.z + 1)
+    );
+
+    camera.updateMatrixWorld( true );
+    //console.log(cameraBox);
+    //cameraBox.applyMatrix4(camera.matrixWorld);    
+
+    var box = new THREE.Box3().setFromObject(group);
+    //console.log(box);
+    //box.applyMatrix4(group.matrixWorld);
+
+    return cameraBox.intersectsBox(box);
+}
+
 /* Mouse Moving
 Got assistance from https://stackoverflow.com/questions/37837189/turning-around-using-mouse-in-three-js
 */
-
-
 var startX, startY;
 function downClbk(e) {
   renderer.domElement.addEventListener('mousemove', moveClbk);
@@ -799,13 +845,12 @@ renderer.domElement.addEventListener('mouseup', upClbk);
 
 
 // Crosshair
-var crosshair = loader.load('media/mycrosshair.png');
-
-var sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: crosshair, color: 0xffffff, fog: false, depthTest: false, depthWrite: false}));
-sprite.scale.set(0.15, 0.15 * camera.aspect, 1)
-sprite.position.set(0, 0, -10);
-
+var sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: loader.load('media/mycrosshair.png'), fog: false, depthTest: false, depthWrite: false}));
+//sprite.scale.set(0.15, 0.15 * camera.aspect, 1)
+sprite.position.set(0, 0, 0);
 scene.add( sprite );
+console.log( sprite );
+
 
 var clock = new THREE.Clock();
 var speed = 10; //units a second
@@ -831,7 +876,6 @@ function animate() {
     if(pos >= 0.25) {
 
         orbit.rotation.z += 0.002; 
-        //console.log(orbit);
 
         pos = 0;
     }
