@@ -9,8 +9,9 @@
 <script type="module">
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
+import { PointerLockControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/PointerLockControls.js";
 //import { MeshSurfaceSampler } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/MeshSurfaceSampler.js";
-import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier2d-compat';
+//import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier2d-compat';
 
 /**
  * Utility Methods
@@ -91,6 +92,7 @@ window.addEventListener('resize', function(e){
 
 //const orbinControls = new OrbitControls(camera, renderer.domElement);
 //orbinControls.enableDamping = false;
+const controls = new PointerLockControls( camera, document.body );
 
 function Tree(start, recursions) {
     this.group = new THREE.Group();
@@ -266,8 +268,10 @@ function Tree(start, recursions) {
 
         // Geometry management
         var geom;
-        const logMat = new THREE.MeshPhongMaterial({color: 0x4B371C});
-        const leafMat = new THREE.MeshPhongMaterial({color: 0x00F400, transparent: true, opacity: 0.8});
+        var logMat = new THREE.MeshPhongMaterial({color: 0x4B371C});
+        logMat.oldColor = new THREE.Color(0x4B371C);
+        var leafMat = new THREE.MeshPhongMaterial({color: 0x00F400, transparent: true, opacity: 0.8});
+        leafMat.oldColor = new THREE.Color(0x00F400);
         var vertices; // For points
 
         // Logic management
@@ -351,6 +355,47 @@ function Tree(start, recursions) {
 
         scene.add(this.group);
     }
+
+    // The tint color for a highlighted tree.
+    this.tintColor = new THREE.Color( 0x8fd3fe );
+
+    this.inHue = false;
+    this.setHue = function( bool ) {
+        // If this tree is already applied with what it belongs with
+        if(bool == this.inHue)
+            return;
+
+
+        this.inHue = bool;
+
+        // Change the color of each mesh
+        for(var i = 0; i < this.group.children.length; i++) {
+            
+            var child = this.group.children[i];
+            
+            console.log(child);
+
+            // If apply hue
+            if(bool) {
+                // Assign the hue
+                var r = (child.material.color.r * this.tintColor.r);
+                var g = (child.material.color.g * this.tintColor.g);
+                var b = (child.material.color.b * this.tintColor.b);
+                console.log(`rgb(${r}, ${g}, ${b})`);
+                child.material.color = new THREE.Color(r,g,b);
+
+            } 
+            // If remove hue
+            else {
+                
+                // Assign the old color back
+                child.material.color = child.material.oldColor;
+                
+            }
+
+        }    
+    }
+
 }
 
 
@@ -820,7 +865,6 @@ function moveCamera( direction ) {
 /**
  * Updates the sprites position based on the camera
  */ 
-
 function updateSpritePosition() {
     var vector = new THREE.Vector3(); // create once and reuse it!
     camera.getWorldDirection( vector );
@@ -828,10 +872,36 @@ function updateSpritePosition() {
     sprite.position.set(camera.position.x + vector.x, camera.position.y + vector.y, camera.position.z + vector.z);
 }
 
-    //var vector = new THREE.Vector3(); // create once and reuse it!
-    //camera.getWorldDirection( vector );
+/**
+ * Determines if the sprite interacts with any trees.
+ */ 
+function doesSpriteInteractWithTrees() {
+    const spriteTTRaycaster = new THREE.Raycaster();
 
-    //sprite.position.set(camera.position.x + 5, camera.position.y, camera.position.z);
+    var vector = new THREE.Vector3(); // create once and reuse it!
+    camera.getWorldDirection( vector );
+    // Change camera y according to raycasting
+    spriteTTRaycaster.set(sprite.position, vector);
+
+    // Determine if the sprite interacts with any trees.
+    for(var i = 0; i < trees.length; i++) {
+
+        const intersects = spriteTTRaycaster.intersectObjects( trees[i].group.children );
+        // If we do not interset, go up and try again
+        if(intersects.length <= 0) {
+            trees[i].setHue(false);
+        } 
+        // We have an intersection, use 0
+        else {
+            trees[i].setHue(true);
+        }
+    }
+}
+
+//var vector = new THREE.Vector3(); // create once and reuse it!
+//camera.getWorldDirection( vector );
+
+//sprite.position.set(camera.position.x + 5, camera.position.y, camera.position.z);
 
 
 
@@ -885,6 +955,12 @@ function moveClbk(e) {
 renderer.domElement.addEventListener('mousedown', downClbk);
 renderer.domElement.addEventListener('mouseup', upClbk);
 
+renderer.domElement.addEventListener('click', mouseClick);
+function mouseClick(e) {
+    console.log(e);
+    controls.lock();
+}
+
 var clock = new THREE.Clock();
 var speed = 10; //units a second
 var delta = 0;
@@ -905,6 +981,9 @@ function animate() {
     
     // Animate the crosshair (sprite) every time we render
     updateSpritePosition();
+
+    // Determines if the sprite interacts with any trees
+    doesSpriteInteractWithTrees();
 
     // Moves the sun and moon in a rotation.
     delta = clock.getDelta();
