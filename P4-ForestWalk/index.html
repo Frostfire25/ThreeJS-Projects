@@ -15,7 +15,11 @@
  *  - Derek Costello
  *  - Alexander Elguezabal
  * 
+ *  WASD keys to move around
+ *  Moving the mouse pans your vision
  * 
+ *  To view the sun press(o)
+ *  To view the moon press(p)
  */ 
 
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
@@ -795,11 +799,12 @@ document.addEventListener('keydown', (e) => {
 
     switch(e.key) {
         case 'o': {
-            camera.lookAt(sunGroup.position);
+            console.log(orbit);
+            camera.lookAt(orbit.children[1].position);
             return;
         }; 
         case 'p': {
-            camera.lookAt(moonGroup.position);
+            camera.lookAt(orbit.children[0].position);
             return;
         };
     }
@@ -1018,6 +1023,14 @@ function animate() {
     if(pos >= 0.25) {
 
         orbit.rotation.z += 0.002; 
+        
+        /**
+        for(var i = 0; i < orbit.children.length; i++) {
+            for(var j = 0; j < orbit.children[i].children.length; j++) {
+                orbit.children[i].children[j].rotation.z += 0.002; 
+            }
+        }
+        */
 
         pos = 0;
     }
