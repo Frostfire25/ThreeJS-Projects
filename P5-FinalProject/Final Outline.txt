@@ -1,0 +1,48 @@
+Dummies:
+- Model
+- Spawning
+- Ragdoll
+	- Force application from cannonball / bullet
+	- Limb movement
+		- Springs
+	- Gravity
+	- Despawn after 5s
+Cannon:
+- Cannonball
+	- Mass
+	- Velocity forwards
+	- Gravity
+	- 
+- Aim
+- Smoke
+	- Particles
+		- Initial velocity outwards randomly
+		- Decelleration to keep the smoke clumped a bit
+		- Despawn after 3s
+Gun:
+- Bullet
+	- Particle
+		- Static velocity
+		- No force
+		- No acceleration
+		- Despawn if outside of 1000m
+		- Mass
+
+Invisible Punch:
+- Animation (if we find time that would be AWESOME)
+- Super strong / super weak
+	- Strong: Launch it would be funny
+	- Weak: Juggling? Not bad
+	- Ramping...????????
+		- Combos send bodies flying?
+
+Terrain:
+- Procedural smoothing uphill
+
+Lighting:
+- Directional light
+- Nighttime? Street lamps?
+
+OPTIONAL:
+- Shoot cannonball at house that collapses...
+- Respawns after 10s
