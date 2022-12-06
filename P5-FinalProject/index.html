@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>Forest Walk Project (4)</title>
+    <title>Final Project (5)</title>
 </head>
 <body>
 
@@ -20,43 +20,18 @@
  * 
  *  To view the sun press(o)
  *  To view the moon press(p)
- */ 
+ */
 
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
-import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
-import { PointerLockControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/PointerLockControls.js";
-//import { MeshSurfaceSampler } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/MeshSurfaceSampler.js";
-//import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier2d-compat';
-
-
-/**
- * Utility Methods
- */ 
-
-// Objects & Functions
-// Gets a random number
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
-function getRandomArbitrary(min, max) {
-  return Math.random() * (max - min) + min;
-}
-
-// Gets a random integer
-// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
-function getRandomArbitraryInt(min, max) {
-    min = Math.ceil(min);
-    max = Math.floor(max);
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
+import { DragControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls.js";
 
 // Define scene
 var scene = new THREE.Scene();
 
-// Define texture loader
-const loader = new THREE.TextureLoader();
-
 // Camera
-var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight * 2, .1, 3000 );
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.set(0, 3, 20);
+camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
 scene.add( camera );
 
 // Define renderer
@@ -65,7 +40,6 @@ renderer.setClearColor(0x000000);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
-renderer.outputEncoding = THREE.sRGBEncoding;
 
 // Got function from https://codepen.io/anon/pen/qNNNzJ
 window.addEventListener('resize', function(e){
@@ -76,8 +50,56 @@ window.addEventListener('resize', function(e){
   renderer.render(scene, camera);
 });
 
-const orbinControls = new OrbitControls(camera, renderer.domElement);
-//const controls = new PointerLockControls( camera, document.body );
+// Add the directional light
+const dirLight = new THREE.DirectionalLight(0xffffff);
+const backLight = new THREE.DirectionalLight(0x212121);
+
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.position.set(20, 30, 15);
+
+backLight.position.set(-20, -30, -15);
+scene.add(dirLight);
+scene.add(backLight);
+
+// Set the stage
+var planeGeom = new THREE.PlaneGeometry(15, 15);
+var planeMat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide});
+const plane = new THREE.Mesh(planeGeom, planeMat);
+plane.rotation.x += Math.PI / 2;
+plane.position.y -= 2;
+plane.receiveShadow = true;
+
+scene.add(plane);
+
+var sphereGeom = new THREE.SphereGeometry(1, 16, 16);
+var sphere1 = new THREE.Mesh(sphereGeom, new THREE.MeshPhongMaterial({color: Math.random() * 0xffffff}));
+var sphere2 = new THREE.Mesh(sphereGeom, new THREE.MeshPhongMaterial({color: Math.random() * 0xffffff}));
+
+scene.add(sphere1, sphere2);
+
+sphere1.position.set(5, 0, 0);
+sphere2.position.set(-5, 0, 0);
+
+var draggables = [];
+draggables.push(sphere1);
+
+const controls = new DragControls(draggables, camera, renderer.domElement);
+
+// Particle mechanics
+function Particle(object) {
+    this.obj = object
+    this.acc;
+    this.vel;
+    this.mass = 10;
+    this.applyForce = function(force) { // Input: Vec3 Force
+        this.acc = force / mass;
+    }
+    this.update = function (dt) { // Input: DeltaTime (in seconds)
+        this.vel = this.acc * dt;
+    }
+}
 
 // Does the animation
 function animate() {
