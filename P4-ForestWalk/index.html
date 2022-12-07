@@ -764,7 +764,7 @@ var trees = [];
 
 // Spawn trees
 const treeRaycaster = new THREE.Raycaster();
-for(var i = 0; i < getRandomArbitraryInt(50,100); i++) {
+for(var i = 0; i < getRandomArbitraryInt(100,150); i++) {
     var tree = new Tree("B", 4);
     tree.drawTree([20, 35, 45, 60, /*90, 110, 130 */]);
 
@@ -774,13 +774,11 @@ for(var i = 0; i < getRandomArbitraryInt(50,100); i++) {
     const intersects = treeRaycaster.intersectObject( plane );
 
     // If we do not interset, go up and try again
-    if(intersects.length <= 0) {
-
+    while(intersects.length <= 0) {
+        tree.group.position.y += 10
     } 
     // We have an intersection, use 0
-    else {
-       tree.group.position.y = (tree.group.position.y - intersects[0].distance);
-    }
+    tree.group.position.y = (tree.group.position.y - intersects[0].distance);
 
     tree.group.castShadow = true;
     tree.group.receiveShadow = true;
@@ -1023,7 +1021,7 @@ function animate() {
     pos += delta;
     if(pos >= 0.25) {
 
-        orbit.rotation.z += 0.002; 
+        orbit.rotation.z += 0.05; 
         
         
         for(var i = 0; i < orbit.children.length; i++) {

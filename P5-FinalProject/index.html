@@ -1,0 +1,100 @@
+<html>
+<head>
+    <title>Forest Walk Project (4)</title>
+</head>
+<body>
+
+    <canvas id="myCanvas"></canvas>
+
+<script type="module">
+
+
+/**
+ * Forest Walk Project
+ * By:
+ *  - Derek Costello
+ *  - Alexander Elguezabal
+ * 
+ *  WASD keys to move around
+ *  Moving the mouse pans your vision
+ * 
+ *  To view the sun press(o)
+ *  To view the moon press(p)
+ */ 
+
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
+import { PointerLockControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/PointerLockControls.js";
+//import { MeshSurfaceSampler } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/MeshSurfaceSampler.js";
+//import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier2d-compat';
+
+
+/**
+ * Utility Methods
+ */ 
+
+// Objects & Functions
+// Gets a random number
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomArbitrary(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// Gets a random integer
+// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomArbitraryInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+
+// Define scene
+var scene = new THREE.Scene();
+
+// Define texture loader
+const loader = new THREE.TextureLoader();
+
+// Camera
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight * 2, .1, 3000 );
+scene.add( camera );
+
+// Define renderer
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+renderer.setClearColor(0x000000);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+// Got function from https://codepen.io/anon/pen/qNNNzJ
+window.addEventListener('resize', function(e){
+  var width = window.innerWidth, height = window.innerHeight;
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+  renderer.render(scene, camera);
+});
+
+const orbinControls = new OrbitControls(camera, renderer.domElement);
+//const controls = new PointerLockControls( camera, document.body );
+
+// Does the animation
+function animate() {
+    requestAnimationFrame(animate);
+
+    render();
+}
+
+function render() {
+    renderer.render(scene, camera);
+}
+
+
+// Initiate graphical loop
+animate();
+
+    </script>
+
+</body>
+</html>
