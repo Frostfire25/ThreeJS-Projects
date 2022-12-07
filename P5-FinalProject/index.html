@@ -6,6 +6,46 @@
 
     <canvas id="myCanvas"></canvas>
 
+<script id = "vertexShader" type = "x-shader/x-vertex">
+// Shift vertex position along normal
+
+uniform sampler2D bumpTexture; // bump texture is lookup in texture image
+uniform float bumpScale; // amount vertex is displaced by the bumpTexture
+
+// varying = data to be shared with fragment shader
+varying float vAmount; // Red color value in a texel.
+
+void main() {
+    vec4 bumpData = texture2D( bumpTexture, uv ); // color value of the texel/cordonate
+    vAmount = bumpData.r; // get the red value of the texel art
+
+    // move the position along the normal (direction of the vertex)
+    vec3 newPosition = position + normal * bumpScale * vAmount;
+
+    // Calculate new position of vertex
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
+}
+</script>
+
+<script id = "fragmentShader" type = "x-shader/x-vertex">
+// operates on "fragment of an object and tells what the color of the fragment is supposed to be.
+
+// varying is a variable that contains data from the vertex shader to the fragment shader.
+varying float vAmount; // Received from vertex shader, represents the red value of a texel.
+
+void main() {
+    //                  Color Gradient main                    Color Gradient Edge      
+    //                      minHt maxHt mapHt                  minHt maxHt mapHt             RGB color
+    vec3 water = (smoothstep(0.01, 0.99, vAmount/0.9) - smoothstep(0.15, 0.16, vAmount)) * vec3(0.0, 0.10, 0.75);
+    
+    // Sand gradient.
+    //vec3 sand = (smoothstep(0.15, 0.16, vAmount) - smoothstep(0.16, 0.20, vAmount)) * vec3(0.76, 0.7, 0.5);
+
+    
+    gl_FragColor = vec4( water , 1.0 );
+}
+</script>
+
 <script type="module">
 
 
@@ -88,23 +128,42 @@ const controls = new OrbitControls( camera, renderer.domElement );
 
 /**
  * Create the heightmap
- * Inspiration from https://www.youtube.com/watch?v=wULUAhckH9w
+ * Inspiration from https://www.youtube.com/watch?v=wULUAhckH9w & https://www.youtube.com/watch?v=G0hWjD0n46c&t=43s
  */ 
 let ground = undefined;
 const terrainSize = 2000;
+const bumpScale = terrainSize/10;
 function loadHeightMap() {
-    const bumpTextre = new THREE.TextureLoader().load( './media/height_map_1.jpg' )
+
+    // Load texture and create geometry
+    const bumpTexture = new THREE.TextureLoader().load( './media/height_map_1.jpg' )
     const groundGeo = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize/10, terrainSize/10);
 
-    bumpTextre.wrapS = bumpTextre.wrapT = THREE.Repeating;
-    bumpTextre.repeat.set( 1, 1 );
+    // Make the texture wrap or repeate, to wrap do [1,1]
+    bumpTexture.wrapS = bumpTexture.wrapT = THREE.Repeating;
+    bumpTexture.repeat.set( 1, 1 );
 
+    // Create uniforms to send to the shaders.
+    const uniforms = {
+        bumpTexture: { value: bumpTexture },
+        bumpScale: { value: bumpScale }, // Higher the number, the more the mesh verticies will be displaced.
+    };
+
+    // Create the ground material
+    const groundMat = new THREE.ShaderMaterial({ 
+        uniforms: uniforms,
+        vertexShader: document.getElementById( 'vertexShader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
+    });
+
+    /**
     const groundMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         wireframe: true,
-        displacementMap: bumpTextre,
-        displacementScale: terrainSize/17, // Higher the number, the more the mesh verticies will be displaced.
+        displacementMap: bumpTexture,
+        displacementScale: bumpScale, // Higher the number, the more the mesh verticies will be displaced.
     });
+    **/
 
     // Creating the ground mesh
     ground = new THREE.Mesh( groundGeo, groundMat );
@@ -120,6 +179,7 @@ loadHeightMap();
 function animate() {
     requestAnimationFrame(animate);
     controls.update();
+
 
     render();
 }
