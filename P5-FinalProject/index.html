@@ -39,10 +39,33 @@ void main() {
     vec3 water = (smoothstep(0.01, 0.99, vAmount/0.9) - smoothstep(0.15, 0.16, vAmount)) * vec3(0.0, 0.10, 0.75);
     
     // Sand gradient.
-    //vec3 sand = (smoothstep(0.15, 0.16, vAmount) - smoothstep(0.16, 0.20, vAmount)) * vec3(0.76, 0.7, 0.5);
+    vec3 sand = (smoothstep(0.15, 0.16, vAmount) - smoothstep(0.16, 0.18, vAmount)) * vec3(0.8, 0.7, 0.5);
 
+    // Grass layer
+    vec3 grass = (smoothstep(0.16, 0.20, vAmount) - smoothstep(0.18, 0.30, vAmount)) * vec3(0.01, 0.5, 0.2);
     
-    gl_FragColor = vec4( water , 1.0 );
+    // Dirt layer
+    vec3 dirt = (smoothstep(0.20, 0.34, vAmount) - smoothstep(0.30, 0.42, vAmount)) * vec3(0.4, 0.25, 0.21);
+
+    // Dirt2 layer
+    vec3 dirt2 = (smoothstep(0.34, 0.52, vAmount) - smoothstep(0.42, 0.65, vAmount)) * vec3(0.45, 0.35, 0.31);
+
+    // Dirt3 layer
+    vec3 dirt3 = (smoothstep(0.52, 0.67, vAmount) - smoothstep(0.65, 0.75, vAmount)) * vec3(0.55, 0.45, 0.37);
+    
+    // Dirt4 layer
+    vec3 dirt4 = (smoothstep(0.67, 0.78, vAmount) - smoothstep(0.75, 0.82, vAmount)) * vec3(0.65, 0.75, 0.42);
+
+    // Dirt5 layer
+    vec3 dirt5 = (smoothstep(0.74, 0.84, vAmount) - smoothstep(0.82, 0.93, vAmount)) * vec3(0.75, 0.85, 0.5);
+
+    // Snow layer
+    vec3 snow = (smoothstep(0.84, 0.94, vAmount) - smoothstep(0.93, 0.97, vAmount)) * vec3(0.99, 0.99, 0.99);
+
+    // Ice layer
+    vec3 ice = (smoothstep(0.93, 0.99, vAmount) - smoothstep(0.97, 0.9999, vAmount)) * vec3(0.87, 0.87, 0.99);
+
+    gl_FragColor = vec4( ice + snow + dirt5 + dirt4 + dirt3 + dirt2 + dirt + grass + sand + water, 1.0 );
 }
 </script>
 
@@ -169,10 +192,29 @@ function loadHeightMap() {
     ground = new THREE.Mesh( groundGeo, groundMat );
     scene.add( ground );
     ground.rotation.x = -Math.PI/2;
-    ground.position.y = -0.5;    
+    ground.position.y = 20;    
 }
 // Loading in the height map & texture
 loadHeightMap();
+
+/**
+ * Adding in grid sky
+ */
+// Adding sky background.
+// Assistance and method from https://www.youtube.com/watch?v=oqKzxPMLWxo &
+// https://www.youtube.com/watch?v=cp-H_6VODko
+const skyLoader = new THREE.CubeTextureLoader();
+const texture = skyLoader.load([
+      './media/skybox/dust_ft.jpg',
+      './media/skybox/dust_bk.jpg',
+      './media/skybox/dust_up.jpg',
+      './media/skybox/dust_dn.jpg',
+      './media/skybox/dust_rt.jpg',
+      './media/skybox/dust_lf.jpg',
+  ]);
+texture.encoding = THREE.sRGBEncoding;
+scene.background = texture;
+
 
 
 // Does the animation
