@@ -120,7 +120,7 @@ const loader = new THREE.TextureLoader();
 
 // Camera
 var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight * 2, .1, 3000 );
-camera.position.set(0,150,0);
+camera.position.set(0,200,0);
 scene.add( camera );
 
 // Define renderer
@@ -147,13 +147,14 @@ light.position.set(100,100,100);
 scene.add(light);
 
 // Adding in orbit controls
-const controls = new OrbitControls( camera, renderer.domElement );
+const controls = new PointerLockControls( camera, document.body );
+//const controls = new OrbitControls( camera, renderer.domElement );
 
 /**
  * Create the heightmap
  * Inspiration from https://www.youtube.com/watch?v=wULUAhckH9w & https://www.youtube.com/watch?v=G0hWjD0n46c&t=43s
  */ 
-let ground = undefined;
+let terrain = undefined;
 const terrainSize = 2000;
 const bumpScale = terrainSize/10;
 function loadHeightMap() {
@@ -161,6 +162,9 @@ function loadHeightMap() {
     // Load texture and create geometry
     const bumpTexture = new THREE.TextureLoader().load( './media/height_map_1.jpg' )
     const groundGeo = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize/10, terrainSize/10);
+    groundGeo.verticesNeedUpdate = true;
+    groundGeo.computeFaceNormals();
+    groundGeo.computeVertexNormals();
 
     // Make the texture wrap or repeate, to wrap do [1,1]
     bumpTexture.wrapS = bumpTexture.wrapT = THREE.Repeating;
@@ -188,11 +192,14 @@ function loadHeightMap() {
     });
     **/
 
+    groundGeo.verticesNeedUpdate = true;
+    groundGeo.computeFaceNormals();
+    groundGeo.computeVertexNormals();
     // Creating the ground mesh
-    ground = new THREE.Mesh( groundGeo, groundMat );
-    scene.add( ground );
-    ground.rotation.x = -Math.PI/2;
-    ground.position.y = 20;    
+    terrain = new THREE.Mesh( groundGeo, groundMat );
+    scene.add( terrain );
+    terrain.rotation.x = -Math.PI/2;
+    terrain.position.y = 20;    
 }
 // Loading in the height map & texture
 loadHeightMap();
@@ -217,10 +224,123 @@ scene.background = texture;
 
 
 
+/**
+ * Camera movement 
+ */ 
+/* Mouse Moving
+Got assistance from https://stackoverflow.com/questions/37837189/turning-around-using-mouse-in-three-js
+*/
+var startX, startY;
+function downClbk(e) {
+  renderer.domElement.addEventListener('mousemove', moveClbk);
+  startX = e.clientX; startY = e.clientY;
+}
+function upClbk(e) {
+  renderer.domElement.removeEventListener('mousemove', moveClbk);
+}
+function moveClbk(e) {
+  var delX = e.clientX - startX;
+  var delY = e.clientY - startY;
+  var width = window.innerWidth, height = window.innerHeight, min = Math.min(width, height);
+  camera.rotation.x += delY/min;
+  camera.rotation.y += delX/min;
+  startX = e.clientX; startY = e.clientY;
+  //renderer.render(scene, camera);
+}
+renderer.domElement.addEventListener('mousedown', downClbk);
+renderer.domElement.addEventListener('mouseup', upClbk);
+
+renderer.domElement.addEventListener('click', mouseClick);
+function mouseClick(e) {
+    controls.lock();
+}
+
+
+/**
+ * KeyPress Events & Walking
+ */ 
+
+// Keyboard Input Listener
+document.addEventListener('keydown', (e) => {
+    moveCamera(e.key);
+});
+
+const raycaster = new THREE.Raycaster();
+// Moves the camera based on the input direction
+function moveCamera( direction ) {
+    const moveSpeed = 0.5;
+    const halfTerrain = (terrainSize/2);
+    const sendBackMoveSpeedMultiplier = 5;
+
+    // If out of bounds return
+    if(camera.position.x > (halfTerrain - moveSpeed)) {
+        // send two back
+        camera.position.x = halfTerrain - (moveSpeed * sendBackMoveSpeedMultiplier);
+    } else if(camera.position.x < -1 * (halfTerrain - moveSpeed)) {
+        camera.position.x = halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
+    } else if(camera.position.z > (halfTerrain - moveSpeed)) {
+        camera.position.z = halfTerrain - (moveSpeed * sendBackMoveSpeedMultiplier);
+    } else if(camera.position.z < -1 * (halfTerrain - moveSpeed)) {
+        camera.position.z = halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
+    }
+    
+    // If hitting a tree return
+
+    // Tree collision detection
+    //for(var i = 0; i < trees.length; i++) {
+    //    if(isColliding(camera, trees[i].group)) {
+    //        camera.translateZ(moveSpeed * sendBackMoveSpeedMultiplier);
+    //        console.log("Collission with tree.");
+    //    }
+    //}
+
+    //var vector = new THREE.Vector3(); // create once and reuse it!
+    //camera.getWorldDirection( vector );
+    //console.log(vector);
+
+    console.log(terrain);
+
+    // Move in the direction
+    switch( direction ) {
+        case 'w': {
+            camera.translateZ(-moveSpeed);            
+        }; break;
+        case 'a': {
+            camera.translateX(-moveSpeed);
+        }; break;
+        case 's': {
+            camera.translateZ(moveSpeed);
+        }; break;
+        case 'd': {
+            camera.translateX(moveSpeed);
+        }; break;
+    }    
+    // Change camera y according to raycasting
+    raycaster.set(camera.position, new THREE.Vector3(0, -1, 0).normalize());
+    const intersects = raycaster.intersectObject( terrain );
+
+    // If we do not interset, go up and try again
+    if(intersects.length <= 0) {
+
+    } 
+    // We have an intersection, use 0
+    else {
+        console.log(intersects);
+        camera.position.y = (camera.position.y - intersects[0].distance) + 2;
+    }
+
+    render();
+}
+
+
+
+
+
+
 // Does the animation
 function animate() {
     requestAnimationFrame(animate);
-    controls.update();
+    //controls.update();
 
 
     render();
