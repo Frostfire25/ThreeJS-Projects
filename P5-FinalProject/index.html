@@ -1,6 +1,6 @@
 <html>
 <head>
-    <title>Forest Walk Project (4)</title>
+    <title> Final Project - Alexander Elguezabal - Derek Costello </title>
 </head>
 <body>
 
@@ -57,6 +57,7 @@ const loader = new THREE.TextureLoader();
 
 // Camera
 var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight * 2, .1, 3000 );
+camera.position.set(0,150,0);
 scene.add( camera );
 
 // Define renderer
@@ -76,12 +77,49 @@ window.addEventListener('resize', function(e){
   renderer.render(scene, camera);
 });
 
-const orbinControls = new OrbitControls(camera, renderer.domElement);
 //const controls = new PointerLockControls( camera, document.body );
+
+let light = new THREE.AmbientLight(0xffffff, 1);
+light.position.set(100,100,100);
+scene.add(light);
+
+// Adding in orbit controls
+const controls = new OrbitControls( camera, renderer.domElement );
+
+/**
+ * Create the heightmap
+ * Inspiration from https://www.youtube.com/watch?v=wULUAhckH9w
+ */ 
+let ground = undefined;
+const terrainSize = 2000;
+function loadHeightMap() {
+    const bumpTextre = new THREE.TextureLoader().load( './media/height_map_1.jpg' )
+    const groundGeo = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize/10, terrainSize/10);
+
+    bumpTextre.wrapS = bumpTextre.wrapT = THREE.Repeating;
+    bumpTextre.repeat.set( 1, 1 );
+
+    const groundMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        wireframe: true,
+        displacementMap: bumpTextre,
+        displacementScale: terrainSize/17, // Higher the number, the more the mesh verticies will be displaced.
+    });
+
+    // Creating the ground mesh
+    ground = new THREE.Mesh( groundGeo, groundMat );
+    scene.add( ground );
+    ground.rotation.x = -Math.PI/2;
+    ground.position.y = -0.5;    
+}
+// Loading in the height map & texture
+loadHeightMap();
+
 
 // Does the animation
 function animate() {
     requestAnimationFrame(animate);
+    controls.update();
 
     render();
 }
