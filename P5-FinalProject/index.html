@@ -31,7 +31,7 @@ var scene = new THREE.Scene();
 
 // Camera
 var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-camera.position.set(0, 3, 20);
+camera.position.set(0, 10, 50);
 camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
 scene.add( camera );
 
@@ -67,7 +67,8 @@ scene.add(backLight);
 // Particle mechanics
 function Particle(object, m) {
     this.obj = object
-    this.acc = new THREE.Vector3();
+    this.acc = new THREE.Vector3(0, 0, 0);
+    this.isGrounded = false;
     this.vel = new THREE.Vector3();
     this.mass = m;
     this.applyForce = function(force) { // Input: Vec3 Force
@@ -78,6 +79,7 @@ function Particle(object, m) {
         this.obj.position.add(this.vel);
         this.vel.multiplyScalar(.975); // Damping
         this.acc.multiplyScalar(0);
+        //this.isGrounded ? this.acc.set(0, 0, 0) : this.acc.set(0, -9.81, 0);
     }
 }
 
@@ -105,11 +107,12 @@ function Spring(part1, part2, kConst) {
 }
 
 // Set the stage
-var planeGeom = new THREE.PlaneGeometry(15, 15);
+var planeGeom = new THREE.PlaneGeometry(32, 32);
 var planeMat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide});
 const plane = new THREE.Mesh(planeGeom, planeMat);
 plane.rotation.x += Math.PI / 2;
-plane.position.y -= 2;
+plane.position.y -= 10;
+plane.geometry.computeBoundingBox();
 plane.receiveShadow = true;
 
 scene.add(plane);
@@ -121,7 +124,9 @@ var sphere2 = new THREE.Mesh(sphereGeom, new THREE.MeshPhongMaterial({color: /*M
 scene.add(sphere1, sphere2);
 
 sphere1.position.set(-5, 0, 0);
-sphere2.position.set(5, 0, 0);
+sphere2.position.set(0, 3, 0);
+sphere1.castShadow = true;
+sphere2.castShadow = true;
 
 var draggables = [];
 draggables.push(sphere1, sphere2);
@@ -133,7 +138,7 @@ orbitControls.enabled = false;
 var particle1 = new Particle(sphere1, 1);
 var particle2 = new Particle(sphere2, 1);
 
-var spring = new Spring(particle1, particle2, 3);
+var spring = new Spring(particle1, particle2, 2);
 
 
 var dragging = false;
@@ -162,6 +167,18 @@ var lastTime = Date.now();
 var newTime;
 var deltaTime;
 
+const sphereHelper = new THREE.BoxHelper( sphere1, 0xffff00 );
+const planeHelper = new THREE.BoxHelper( plane, 0xffffff );
+scene.add(sphereHelper, planeHelper);
+
+console.log(sphere1);
+console.log(sphereHelper);
+
+var sphere1BB = new THREE.Sphere();
+plane.geometry.computeBoundingBox();
+var planeBox = new THREE.Box3().copy(plane.geometry.boundingBox).applyMatrix4(plane.matrixWorld);
+sphere1.geometry.computeBoundingSphere();
+
 // Does the animation
 function animate() {
     requestAnimationFrame(animate);
@@ -171,6 +188,12 @@ function animate() {
     deltaTime = newTime - lastTime;
     lastTime = newTime;
 
+    sphereHelper.update();
+    sphere1BB.copy(sphere1.geometry.boundingSphere).applyMatrix4(sphere1.matrixWorld);
+    //if(sphere1BB.intersectsBox(planeBox));
+        //console.log("Bounding now");
+    //if(sphere1.geometry.boundingBox.intersectsBox(plane.geometry.boundingBox))
+    //    console.log("Colliding");
     //if(!dragging) {
         spring.updateSpringForce();
         particle1.update(deltaTime / 1000);
