@@ -24,6 +24,7 @@
 
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { DragControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls.js";
+import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
 
 // Define scene
 var scene = new THREE.Scene();
@@ -63,6 +64,46 @@ backLight.position.set(-20, -30, -15);
 scene.add(dirLight);
 scene.add(backLight);
 
+// Particle mechanics
+function Particle(object, m) {
+    this.obj = object
+    this.acc = new THREE.Vector3();
+    this.vel = new THREE.Vector3();
+    this.mass = m;
+    this.applyForce = function(force) { // Input: Vec3 Force
+        this.acc.add(force.divideScalar(this.mass));
+    }
+    this.update = function (dt) { // Input: DeltaTime (in seconds)
+        this.vel.add(this.acc.multiplyScalar(dt));
+        this.obj.position.add(this.vel);
+        this.vel.multiplyScalar(.975); // Damping
+        this.acc.multiplyScalar(0);
+    }
+}
+
+// Spring mechanics
+function Spring(part1, part2, kConst) {
+    this.p1 = part1;
+    this.p2 = part2;
+    this.restLen = this.p1.obj.position.distanceTo(this.p2.obj.position);
+    this.k = kConst;
+    this.updateSpringForce = function() { // Inspiration: https://github.com/wprimett/ThreeJS-SpringDeformer/blob/master/src/Spring.js
+        // Copy pos1 & pos2
+        var pos1 = new THREE.Vector3().copy(this.p1.obj.position);
+        var pos2 = new THREE.Vector3().copy(this.p2.obj.position);
+        // Distance b/w points
+        var dist = pos1.distanceTo(pos2) - this.restLen;
+        // Direction b/w points
+        var dir = pos1.sub(pos2).normalize();
+        
+        // Calculate force using:
+        // Hooke's Law: F = -k * x; where x is the distance from restLen
+        var force = dir.multiplyScalar(-this.k * dist);
+        this.p1.applyForce(force);
+        this.p2.applyForce(force.multiplyScalar(-1));
+    }
+}
+
 // Set the stage
 var planeGeom = new THREE.PlaneGeometry(15, 15);
 var planeMat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide});
@@ -74,36 +115,67 @@ plane.receiveShadow = true;
 scene.add(plane);
 
 var sphereGeom = new THREE.SphereGeometry(1, 16, 16);
-var sphere1 = new THREE.Mesh(sphereGeom, new THREE.MeshPhongMaterial({color: Math.random() * 0xffffff}));
-var sphere2 = new THREE.Mesh(sphereGeom, new THREE.MeshPhongMaterial({color: Math.random() * 0xffffff}));
+var sphere1 = new THREE.Mesh(sphereGeom, new THREE.MeshPhongMaterial({color: /*Math.random() */ 0xff0000}));
+var sphere2 = new THREE.Mesh(sphereGeom, new THREE.MeshPhongMaterial({color: /*Math.random() */ 0x00ffff}));
 
 scene.add(sphere1, sphere2);
 
-sphere1.position.set(5, 0, 0);
-sphere2.position.set(-5, 0, 0);
+sphere1.position.set(-5, 0, 0);
+sphere2.position.set(5, 0, 0);
 
 var draggables = [];
-draggables.push(sphere1);
+draggables.push(sphere1, sphere2);
 
-const controls = new DragControls(draggables, camera, renderer.domElement);
+const dragControls = new DragControls(draggables, camera, renderer.domElement);
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+orbitControls.enabled = false;
 
-// Particle mechanics
-function Particle(object) {
-    this.obj = object
-    this.acc;
-    this.vel;
-    this.mass = 10;
-    this.applyForce = function(force) { // Input: Vec3 Force
-        this.acc = force / mass;
+var particle1 = new Particle(sphere1, 1);
+var particle2 = new Particle(sphere2, 1);
+
+var spring = new Spring(particle1, particle2, 3);
+
+
+var dragging = false;
+
+dragControls.addEventListener('dragstart', () => {
+    dragging = true;
+});
+
+dragControls.addEventListener('dragend', () => {
+    dragging = false;
+});
+
+document.addEventListener('keypress', (e) => {
+    if(e.altKey) {
+        orbitControls.enabled = true;
+        dragControls.enabled = false;
     }
-    this.update = function (dt) { // Input: DeltaTime (in seconds)
-        this.vel = this.acc * dt;
-    }
-}
+});
+
+document.addEventListener('keyup', (e) => {
+    orbitControls.enabled = false;
+    dragControls.enabled = true;
+});
+
+var lastTime = Date.now();
+var newTime;
+var deltaTime;
 
 // Does the animation
 function animate() {
     requestAnimationFrame(animate);
+
+    // Get the deltaTime
+    newTime = Date.now();
+    deltaTime = newTime - lastTime;
+    lastTime = newTime;
+
+    //if(!dragging) {
+        spring.updateSpringForce();
+        particle1.update(deltaTime / 1000);
+        //particle2.update(deltaTime / 1000);
+    //}
 
     render();
 }
