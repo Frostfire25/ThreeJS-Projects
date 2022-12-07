@@ -171,13 +171,20 @@ const sphereHelper = new THREE.BoxHelper( sphere1, 0xffff00 );
 const planeHelper = new THREE.BoxHelper( plane, 0xffffff );
 scene.add(sphereHelper, planeHelper);
 
-console.log(sphere1);
-console.log(sphereHelper);
+function isColliding(obj1, obj2) {
+    // Update the boxes for objects
+    obj1.geometry.computeBoundingBox();
+    obj1.updateMatrixWorld();
+    obj2.geometry.computeBoundingBox();
+    obj2.updateMatrixWorld(); 
 
-var sphere1BB = new THREE.Sphere();
-plane.geometry.computeBoundingBox();
-var planeBox = new THREE.Box3().copy(plane.geometry.boundingBox).applyMatrix4(plane.matrixWorld);
-sphere1.geometry.computeBoundingSphere();
+    var box1 = obj1.geometry.boundingBox.clone();
+    box1.applyMatrix4(obj1.matrixWorld);
+    var box2 = obj2.geometry.boundingBox.clone();
+    box2.applyMatrix4(obj2.matrixWorld);
+
+    return box1.intersectsBox(box2);
+}
 
 // Does the animation
 function animate() {
@@ -189,11 +196,9 @@ function animate() {
     lastTime = newTime;
 
     sphereHelper.update();
-    sphere1BB.copy(sphere1.geometry.boundingSphere).applyMatrix4(sphere1.matrixWorld);
     //if(sphere1BB.intersectsBox(planeBox));
         //console.log("Bounding now");
-    //if(sphere1.geometry.boundingBox.intersectsBox(plane.geometry.boundingBox))
-    //    console.log("Colliding");
+    console.log(isColliding(plane, sphere1));
     //if(!dragging) {
         spring.updateSpringForce();
         particle1.update(deltaTime / 1000);
