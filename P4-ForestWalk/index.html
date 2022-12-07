@@ -17,9 +17,7 @@
  * 
  *  WASD keys to move around
  *  Moving the mouse pans your vision
- * 
- *  To view the sun press(o)
- *  To view the moon press(p)
+ *
  */ 
 
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
@@ -798,15 +796,18 @@ document.addEventListener('keydown', (e) => {
     //if(e.key === "a") {/*Do nothing for now*/}
 
     switch(e.key) {
+        /**
         case 'o': {
-            console.log(orbit);
-            camera.lookAt(orbit.children[1].position);
+            const [x, y, z] = [positionArray[34*3], positionArray[34*3 + 1], positionArray[34*3 + 2]];
+
+            camera.lookAt(new THREE.Vector3(x,y,z));
             return;
         }; 
         case 'p': {
             camera.lookAt(orbit.children[0].position);
             return;
         };
+        */
     }
 
     moveCamera(e.key);
@@ -1024,13 +1025,12 @@ function animate() {
 
         orbit.rotation.z += 0.002; 
         
-        /**
+        
         for(var i = 0; i < orbit.children.length; i++) {
             for(var j = 0; j < orbit.children[i].children.length; j++) {
                 orbit.children[i].children[j].rotation.z += 0.002; 
             }
         }
-        */
 
         pos = 0;
     }
