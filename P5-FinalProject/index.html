@@ -155,6 +155,7 @@ const controls = new PointerLockControls( camera, document.body );
  * Inspiration from https://www.youtube.com/watch?v=wULUAhckH9w & https://www.youtube.com/watch?v=G0hWjD0n46c&t=43s
  */ 
 let terrain = undefined;
+let backgroundTerrain = undefined;
 const terrainSize = 2000;
 const bumpScale = terrainSize/10;
 function loadHeightMap() {
@@ -183,14 +184,13 @@ function loadHeightMap() {
         fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
     });
 
-    /**
-    const groundMat = new THREE.MeshStandardMaterial({
+    // Create the background terrain material.
+    const backgroundTerrainMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         wireframe: true,
         displacementMap: bumpTexture,
         displacementScale: bumpScale, // Higher the number, the more the mesh verticies will be displaced.
     });
-    **/
 
     groundGeo.verticesNeedUpdate = true;
     groundGeo.computeFaceNormals();
@@ -200,6 +200,14 @@ function loadHeightMap() {
     scene.add( terrain );
     terrain.rotation.x = -Math.PI/2;
     terrain.position.y = 20;    
+
+    // Creating the ground mesh
+    backgroundTerrain = new THREE.Mesh( groundGeo, backgroundTerrainMat );
+    scene.add( backgroundTerrain );
+    backgroundTerrain.rotation.x = -Math.PI/2;
+    backgroundTerrain.position.y = 20;    
+
+    console.log(backgroundTerrain);
 }
 // Loading in the height map & texture
 loadHeightMap();
