@@ -31,7 +31,7 @@ var scene = new THREE.Scene();
 
 // Camera
 var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-camera.position.set(0, 10, 50);
+camera.position.set(0, 0, 40);
 camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
 scene.add( camera );
 
@@ -68,6 +68,7 @@ scene.add(backLight);
 function Particle(object, m) {
     this.obj = object
     this.acc = new THREE.Vector3(0, 0, 0);
+    this.gravity = -3;
     this.isGrounded = false;
     this.vel = new THREE.Vector3();
     this.mass = m;
@@ -75,11 +76,38 @@ function Particle(object, m) {
         this.acc.add(force.divideScalar(this.mass));
     }
     this.update = function (dt) { // Input: DeltaTime (in seconds)
-        this.vel.add(this.acc.multiplyScalar(dt));
-        this.obj.position.add(this.vel);
-        this.vel.multiplyScalar(.975); // Damping
-        this.acc.multiplyScalar(0);
-        //this.isGrounded ? this.acc.set(0, 0, 0) : this.acc.set(0, -9.81, 0);
+        this.vel.add(this.acc.multiplyScalar(dt * 85));
+        if(isColliding(this.obj, plane)) {// If a collision occurs, bounce
+            this.vel.y *= -1;
+            var newVel = this.vel.clone().multiplyScalar(dt);
+            this.obj.position.x += newVel.x;
+            //if(this.obj.position.y + newVel.y > this.obj.position.y)
+                //this.obj.position.y += newVel.y;
+            if(Math.abs(newVel.y) > 0.15 && this.obj.position.y + newVel.y > this.obj.position.y) {
+                this.gravity = -3;
+                this.obj.position.y += newVel.y;
+            } else {
+                this.isGrounded = true;
+            }
+            this.obj.position.z += newVel.z;
+            
+            if(this.isGrounded) {
+                this.gravity = 0;
+                if(this.acc.y > 0.1) {
+                    this.isGrounded = false;
+                    
+                }
+            }
+        }
+        else {
+            this.gravity = -3;
+            this.obj.position.add(this.vel.clone().multiplyScalar(dt));
+        }
+        this.acc.set(0, this.gravity, 0);
+        this.vel.multiplyScalar(0.975); // Damping
+    }
+    this.moveParticle = function(moveX, moveY, moveZ) {
+
     }
 }
 
@@ -138,7 +166,7 @@ orbitControls.enabled = false;
 var particle1 = new Particle(sphere1, 1);
 var particle2 = new Particle(sphere2, 1);
 
-var spring = new Spring(particle1, particle2, 2);
+var spring = new Spring(particle1, particle2, 1);
 
 
 var dragging = false;
@@ -150,11 +178,14 @@ dragControls.addEventListener('dragstart', () => {
 dragControls.addEventListener('dragend', () => {
     dragging = false;
 });
-
+var record = false;
 document.addEventListener('keypress', (e) => {
     if(e.altKey) {
         orbitControls.enabled = true;
         dragControls.enabled = false;
+    }
+    if(e.key == 'x') {
+        record = !record;
     }
 });
 
@@ -196,14 +227,12 @@ function animate() {
     lastTime = newTime;
 
     sphereHelper.update();
-    //if(sphere1BB.intersectsBox(planeBox));
-        //console.log("Bounding now");
-    console.log(isColliding(plane, sphere1));
-    //if(!dragging) {
-        spring.updateSpringForce();
-        particle1.update(deltaTime / 1000);
-        //particle2.update(deltaTime / 1000);
-    //}
+    //console.log(isColliding(plane, sphere1));
+
+    spring.updateSpringForce();
+    //console.log(deltaTime);
+    particle1.update(deltaTime / 1000);
+    //particle2.update(deltaTime / 1000);
 
     render();
 }
