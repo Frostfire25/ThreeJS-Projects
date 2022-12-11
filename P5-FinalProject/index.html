@@ -75,31 +75,11 @@ function Particle(object, m) {
     this.applyForce = function(force) { // Input: Vec3 Force
         this.acc.add(force.divideScalar(this.mass));
     }
-    this.update = function (dt) { // Input: DeltaTime (in seconds)
-        this.vel.add(this.acc.multiplyScalar(dt * 85));
-        var newVel = this.vel.clone().multiplyScalar(dt);
-        if(isColliding(this.obj, plane)) { // If a collision occurs...
-            this.vel.y *= -1;
-            if(Math.abs(newVel.y) > 0.15 && this.obj.position.y + newVel.y > this.obj.position.y) { // If there's enough force going in, bounce off
-                this.isGrounded = false;
-                this.gravity = -3;
-                this.obj.position.add(newVel); // Move the particle normally
-            } else { // Otherwise, classify the object as "grounded", and set gravity to 0
-                this.isGrounded = true;
-                this.gravity = 0;
-            }
-            // Checks in groundedness
-            if(this.isGrounded && this.acc.y > 3) { // If it's grounded but enough force is pulling it out vertically, unground it, move it, and return gravity to -3
-                this.isGrounded = false;
-                this.obj.position.add(newVel);
-            } else if(this.isGrounded) { // Otherwise, if it's grounded but there isn't enough force moving it, move it along the x+z axis (along the ground)
-                this.obj.position.x += newVel.x;
-                this.obj.position.z += newVel.z;
-            }
-        } else { // No collision = work normally
-            this.gravity = -3;
-            this.obj.position.add(newVel);
-        }
+    this.update = function () { // Input: DeltaTime (in seconds)
+        this.vel.add(this.acc);
+        var newVel = this.vel.clone().multiplyScalar(0.01);
+        this.gravity = -3;
+        this.obj.position.add(newVel);
         this.acc.set(0, this.gravity, 0);
         this.vel.multiplyScalar(0.975); // Damping
     }
