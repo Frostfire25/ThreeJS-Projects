@@ -36,7 +36,7 @@ varying float vAmount; // Received from vertex shader, represents the red value 
 void main() {
     //                  Color Gradient main                    Color Gradient Edge      
     //                      minHt maxHt mapHt                  minHt maxHt mapHt             RGB color
-    vec3 water = (smoothstep(0.01, 0.99, vAmount/0.2) - smoothstep(0.15, 0.16, vAmount)) * vec3(0.0, 0.0, 0.67);
+    vec3 water = (smoothstep(0.01, 0.99, vAmount/0.9) - smoothstep(0.15, 0.16, vAmount)) * vec3(0.0, 0.10, 0.75);
     
     // Sand gradient.
     vec3 sand = (smoothstep(0.15, 0.16, vAmount) - smoothstep(0.16, 0.18, vAmount)) * vec3(0.8, 0.7, 0.5);
@@ -88,11 +88,6 @@ void main() {
 import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
 import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
 import { PointerLockControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/PointerLockControls.js";
-import { MTLLoader } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/loaders/MTLLoader.js';
-import { OBJLoader } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/loaders/OBJLoader.js';
-//import MTLLoader from './MTLLoader.js'
-//import OBJLoader from './OBJLoader.js'
-//import { FBXLoader } from 'http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/loaders/FBXLoader'
 //import { MeshSurfaceSampler } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/MeshSurfaceSampler.js";
 //import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier2d-compat';
 
@@ -159,6 +154,20 @@ function mouseClick(e) {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * Creating the heightfield for the raycaster
  */ 
@@ -178,9 +187,9 @@ terrain[terrainSize][0] = 130; // TR
 terrain[0][terrainSize] = 200; // BL
 terrain[terrainSize][terrainSize] = 160; // BR
 
-
-
 // Mountian in the middle
+
+
 var lowRange = 0;
 var highRange = 3000;
 
@@ -188,6 +197,7 @@ var highRange = 3000;
 // Mountian in the middle
 const height = getRandomArbitraryInt(highRange/2, highRange);
 terrain[terrainSize/2][terrainSize/2] = height;
+//terrain[(terrainSize/2) + 30][(terrainSize/2) + 50] = height;
 
 // Small mountian's
 const heightSmallMountian = getRandomArbitraryInt(highRange/4, highRange/2);
@@ -200,18 +210,41 @@ terrain[terrainSize/4][terrainSize] = heightSmallMountian2;
 terrain[terrainSize][terrainSize/4] = heightSmallMountian3;
 terrain[terrainSize][terrainSize] = heightSmallMountian4;
 
-// Smaller mountians
-// Small mountian's
-const heightMediumMountian = getRandomArbitraryInt(highRange/3, highRange/2);
-const heightMediumMountian2 = getRandomArbitraryInt(highRange/3, highRange/2);
-const heightMediumMountian3 = getRandomArbitraryInt(highRange/3, highRange/2);
-const heightMediumMountian4 = getRandomArbitraryInt(highRange/3, highRange/2);
 
-terrain[terrainSize/8][terrainSize/8] = heightMediumMountian;
-terrain[terrainSize/8][terrainSize] = heightMediumMountian2;
-terrain[terrainSize][terrainSize/8] = heightMediumMountian3;
-terrain[terrainSize][terrainSize] = heightMediumMountian4;
+// Define random points center
 
+
+terrain[32][64] = -1000;
+terrain[24][56] = -670;
+terrain[64][96] = -600;
+
+
+/**
+// Loops through every point.
+for(var i = 0; i < terrainSize; i++) {
+       for(var j = 0; j < terrainSize; j++) {
+           
+       var allow = getRandomArbitraryInt(0,1000);
+       if(allow < 980)
+         continue;
+
+       var random = getRandomArbitraryInt(0,50);
+       if(random > 30 && random <= 40) {
+            terrain[i][j] = 0;
+        } else if ( random > 40 && random <= 48) {
+            terrain[i][j] = getRandomArbitraryInt(50,150);
+        } else if(random > 48) {
+            terrain[i][j] = getRandomArbitrary(150,450);
+        } else {
+            terrain[i][j] = 0;
+        }
+    }
+}
+*/
+
+
+
+//console.log(terrain);
 
 // Perform the fractilized smoothing
 doFractile(terrain, [0,0], [terrainSize,0], [0,terrainSize], [terrainSize,terrainSize]);
@@ -220,7 +253,6 @@ smoothTerrain(terrain, 1);
 // Map the heights to a geometry
 var geom = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize, terrainSize);
 //var groundMat = new THREE.MeshPhongMaterial({ color: new THREE.Color("orange"), side: THREE.DoubleSide, });
-
 
 const bumpTexture = new THREE.TextureLoader().load( './media/height_map_1.jpg' )
 const bumpScale = terrainSize/10;
@@ -238,7 +270,6 @@ const groundMat = new THREE.ShaderMaterial({
 });
 
 
-
 var verts = [];
 
 for(var i = 0; i < (terrainSize+1)**2; i++) {
@@ -252,6 +283,13 @@ for(var i = 0; i < (terrainSize+1)**2; i++) {
 
 for ( var i = 0; i < geom.vertices.length; i++ ) {
     geom.vertices[i].z = verts[i] * 0.02;
+        
+    /*// There is a 1 in 1000 chance a tree spawns on this vertex
+    if(getRandomArbitraryInt(0, 1000) <= 1) {
+        var tree = new Tree("B", 4);
+        tree.drawTree([25, 35, 45]);
+        tree.group.position.set(geom.vertices[i].x, verts[i] * 0.02, geom.vertices[i].y);
+    }*/
 }
 
 
@@ -407,6 +445,109 @@ plane.receiveShadow = false;
 scene.add( plane );
 
 /**
+ * Create the heightmap
+ * Inspiration from https://www.youtube.com/watch?v=wULUAhckH9w & https://www.youtube.com/watch?v=G0hWjD0n46c&t=43s
+ */ 
+let backgroundTerrain = undefined;
+//const bumpScale = terrainSize/10;
+function loadHeightMap() {
+
+    /**
+    // Load texture and create geometry
+    const bumpTexture = new THREE.TextureLoader().load( './media/height_map_1.jpg' )
+    const groundGeo = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize/10, terrainSize/10);
+    groundGeo.verticesNeedUpdate = true;
+    groundGeo.computeFaceNormals();
+    groundGeo.computeVertexNormals();
+
+    // Make the texture wrap or repeate, to wrap do [1,1]
+    bumpTexture.wrapS = bumpTexture.wrapT = THREE.Repeating;
+    bumpTexture.repeat.set( 1, 1 );
+
+    // Create uniforms to send to the shaders.
+    const uniforms = {
+        bumpTexture: { value: bumpTexture },
+        bumpScale: { value: bumpScale }, // Higher the number, the more the mesh verticies will be displaced.
+    };
+
+    // Create the ground material
+    const groundMat = new THREE.ShaderMaterial({ 
+        uniforms: uniforms,
+        vertexShader: document.getElementById( 'vertexShader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
+    });
+
+    // Create the background terrain material.
+    const backgroundTerrainMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        wireframe: true,
+        displacementMap: bumpTexture,
+        displacementScale: bumpScale, // Higher the number, the more the mesh verticies will be displaced.
+        bumpMap: bumpTexture,
+        bumpScale, bumpScale,
+    });
+
+    groundGeo.verticesNeedUpdate = true;
+    groundGeo.computeFaceNormals();
+    groundGeo.computeVertexNormals();
+    // Creating the ground mesh
+    terrain = new THREE.Mesh( groundGeo, groundMat );
+    scene.add( terrain );
+    terrain.rotation.x = -Math.PI/2;
+    terrain.position.y = 20;    
+
+    console.log(groundGeo);
+    **/
+    /**
+    const textureLoader = new THREE.TextureLoader();
+    // Loading in the height map and doing, and mapping the values to the geometry and verticies.
+    textureLoader.load('./media/height_map_1.jpg', function(t) {
+
+        var canvas = document.createElement("canvas");
+        canvas.width = t.image.width;
+        canvas.height = t.image.height;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(t.image, 0, 0, t.image.width, t.image.height);
+
+        var wdth = groundGeo.parameters.widthSegments + 1;
+        var hght = groundGeo.parameters.heightSegments + 1;
+        var widthStep = t.image.width / wdth;
+        var heightStep = t.image.height / hght;
+        console.log(wdth, hght, widthStep, heightStep);
+
+        for (var h = 0; h < hght; h++) {
+            for (var w = 0; w < wdth; w++) {
+                var imgData = ctx.getImageData(Math.round(w * widthStep), Math.round(h * heightStep), 1, 1).data;
+                var displacementVal = imgData[0] / 255.0;
+                displacementVal *= 2;
+                var idx = (h * wdth) + w;
+                var vert = groundGeo.vertices[idx];
+                vert.y = displacementVal;
+                //console.log(vert);
+            }
+        }
+
+        groundGeo.verticesNeedUpdate = true;
+        groundGeo.computeFaceNormals();
+
+        console.log("done");
+    });
+    */
+
+    /*
+    // Creating the ground mesh
+    backgroundTerrain = new THREE.Mesh( groundGeo, backgroundTerrainMat );
+    scene.add( backgroundTerrain );
+    backgroundTerrain.rotation.x = -Math.PI/2;
+    backgroundTerrain.position.y = 20;    
+
+    console.log(backgroundTerrain);
+    */
+}
+// Loading in the height map & texture
+//loadHeightMap();
+
+/**
  * Adding in grid sky
  */
 // Adding sky background.
@@ -458,56 +599,14 @@ renderer.domElement.addEventListener('mouseup', upClbk);
 
 // Keyboard Input Listener
 document.addEventListener('keydown', (e) => {
-
     moveCamera(e.key);
 });
 
-// Crosshair
-const crosshair = loader.load('./media/mycrosshair.png');
-crosshair.anisotropy = renderer.capabilities.getMaxAnisotropy();
-var sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: crosshair, fog: false, depthTest: false, depthWrite: false}));
-sprite.scale.set(0.5, 0.05 * camera.aspect, 0.5)
-sprite.position.set(0, 0, 0);
-scene.add( sprite );
-
-/**
-const gunTexture = loader.load('./media/gun.png');
-gunTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-var gun = new THREE.Sprite(new THREE.SpriteMaterial({map: gunTexture, fog: false, depthTest: false, depthWrite: false}));
-gun.scale.set(0.5, camera.aspect * 0.15, 0.5)
-gun.position.set(0, 0, 0);
-scene.add( gun );
-**/
-
-var gun;
-//const loadingManager = new THREE.LoadingManager();
-var mtlLoader = new MTLLoader();
-mtlLoader.load('./media/uziGold.mtl', function(materials) {
-    materials.preload();
-				
-    var objLoader = new OBJLoader();
-    objLoader.setMaterials(materials);
-
-    objLoader.load('./media/uziGold.obj', function(mesh) {
-        gun = mesh;
-
-        console.log(gun);
-
-        gun.position.set(0,2,0);
-        gun.scale.set(7,7,7);
-        scene.add(gun);
-    });
-});
-
-
-
-
-
-
 //raycaster
 var raycaster = new THREE.Raycaster();
+
 function moveCamera( direction ) {
-    const moveSpeed = 1;
+    const moveSpeed = 0.5;
     const halfTerrain = (terrainSize/2);
     const sendBackMoveSpeedMultiplier = 5;
 
@@ -523,6 +622,22 @@ function moveCamera( direction ) {
         camera.position.z = halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
     }
     
+    // If hitting a tree return
+
+    // Tree collision detection
+    //for(var i = 0; i < trees.length; i++) {
+    //    if(isColliding(camera, trees[i].group)) {
+    //        camera.translateZ(moveSpeed * sendBackMoveSpeedMultiplier);
+    //        console.log("Collission with tree.");
+    //    }
+    //}
+
+    //var vector = new THREE.Vector3(); // create once and reuse it!
+    //camera.getWorldDirection( vector );
+    //console.log(vector);
+
+    console.log(terrain);
+
     // Move in the direction
     switch( direction ) {
         case 'w': {
@@ -540,7 +655,6 @@ function moveCamera( direction ) {
     }    
     // Change camera y according to raycasting
 
-    
     // Inspiration from https://io76.com/nca-map/
     raycaster.set(camera.position, new THREE.Vector3(0, -1, 0).normalize());
 	var intersects = raycaster.intersectObject( plane );
@@ -551,39 +665,11 @@ function moveCamera( direction ) {
     } 
     // We have an intersection, use 0
     else {
-        camera.position.y = (camera.position.y - intersects[0].distance) + 5;
+        camera.position.y = (camera.position.y - intersects[0].distance) + 2;
     }
+
+    render();
 }
-
-/**
- * Updates the sprites position based on the camera
- */ 
- function updateCrosshairPosition() {
-    var vector = new THREE.Vector3(); // create once and reuse it!
-    camera.getWorldDirection( vector );
-
-    sprite.position.set(camera.position.x + vector.x, camera.position.y + vector.y, camera.position.z + vector.z);
-}
-
-/**
- * Updates the sprites position based on the camera
- */ 
- function updateGunPosition() {
-    var vector = new THREE.Vector3(); // create once and reuse it!
-    camera.getWorldDirection( vector );
-
-    gun.position.set(
-        camera.position.x - Math.sin(camera.rotation.y) * 0.5, 
-        camera.position.y - 0.25, 
-        camera.position.z + Math.cos(camera.position.y) * 0.5);
-
-    gun.rotation.set(
-		camera.rotation.x,
-		camera.rotation.y - Math.PI,
-		camera.rotation.z
-	);
-}
-
 
 
 
@@ -595,11 +681,6 @@ function animate() {
     requestAnimationFrame(animate);
     //controls.update();
 
-    // Animate the crosshair (sprite) every time we render
-    updateCrosshairPosition();
-
-    // Animate the gun every time we render
-    updateGunPosition();
 
     render();
 }
@@ -611,8 +692,6 @@ function render() {
 
 // Initiate graphical loop
 animate();
-// Move the camera one step to bring it to the correct positon
-moveCamera('w');
 
     </script>
 
