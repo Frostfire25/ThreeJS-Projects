@@ -1,225 +1,145 @@
+<!DOCTYPE html>
 <html>
+
 <head>
-    <title>Final Project (5)</title>
+	<script src="/js/three.js"></script>
+	<script type="text/javascript" src="/js/physi.js"></script>
+	<script type="text/javascript" src="/js/OrbitControls.js"></script>
+    <script type="text/javascript" src="/js/Dummy.js"></script>
+	
 </head>
+
 <body>
+	<div id="viewport"></div>
 
-    <canvas id="myCanvas"></canvas>
+<script type="text/javascript">
+	
+	'use strict';
+	
+	Physijs.scripts.worker = '/js/physijs_worker.js';
+	Physijs.scripts.ammo = '/js/ammo.js';
+	
+	var initScene, render, renderer, scene, camera, box, sphere1, sphere2, spring, dummy1, dummy2, dummy3;
+	
+	initScene = function() {
+		renderer = new THREE.WebGLRenderer({ antialias: true });
+		renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer.setClearColor(0x000000);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+		document.getElementById( 'viewport' ).appendChild( renderer.domElement );
+		
+		scene = new Physijs.Scene;
+		
+		camera = new THREE.PerspectiveCamera(
+			35,
+			window.innerWidth / window.innerHeight,
+			1,
+			5000
+		);
+		camera.position.set( 60, 50, 60 );
+		camera.lookAt( scene.position );
+		scene.add( camera );
 
-<script type="module">
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
+        // Add the directional light
+        const dirLight = new THREE.DirectionalLight(0xffffff);
+        const backLight = new THREE.DirectionalLight(0x212121);
 
-/**
- * Forest Walk Project
- * By:
- *  - Derek Costello
- *  - Alexander Elguezabal
- * 
- *  WASD keys to move around
- *  Moving the mouse pans your vision
- * 
- *  To view the sun press(o)
- *  To view the moon press(p)
- */
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.position.set(20, 30, 15);
 
-import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
-import { DragControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/DragControls.js";
-import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
+        backLight.position.set(-20, -30, -15);
+        scene.add(dirLight);
+        scene.add(backLight);
+		
+		/* Box
+		box = new Physijs.BoxMesh(
+			new THREE.CubeGeometry( 5, 5, 5 ),
+			new THREE.MeshPhongMaterial({ color: 0x888888 }),
+            2
+		);
+		scene.add( box );
+        //*/
 
-// Define scene
-var scene = new THREE.Scene();
+        // Plane
+        var planeGeom = new THREE.PlaneGeometry(320, 320);
+        var planeBaseMat = new THREE.MeshPhongMaterial({color: 0xffffff, side: THREE.DoubleSide});
+        var planeCoverMat = Physijs.createMaterial(new THREE.MeshPhongMaterial({color: 0xffff00, side: THREE.DoubleSide}), 1, 1);
+        const planeBase = new Physijs.ConvexMesh(planeGeom, planeBaseMat, 0);
+        const planeCover = new Physijs.ConvexMesh(planeGeom, planeCoverMat, 10000);
+        planeBase.position.set(0, -10, 0);
+        planeBase.rotation.x = Math.PI / 2;
+        planeCover.position.set(0, -9.99, 0);
+        planeCover.rotation.x = Math.PI / 2;
+        planeCover.receiveShadow = true;
 
-// Camera
-var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-camera.position.set(0, 0, 40);
-camera.lookAt( new THREE.Vector3(0.0,0.0,0.0));
-scene.add( camera );
+        scene.add(planeBase);
+        scene.add(planeCover);
 
-// Define renderer
-var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
-renderer.setClearColor(0x000000);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
-renderer.shadowMap.enabled = true;
+        // Dummy
+        dummy1 = new Dummy(new THREE.Vector3(0, 0, 0), Math.random() * 0xffffff, 25);
+        dummy1.init(scene);
 
-// Got function from https://codepen.io/anon/pen/qNNNzJ
-window.addEventListener('resize', function(e){
-  var width = window.innerWidth, height = window.innerHeight;
-  camera.aspect = width / height;
-  camera.updateProjectionMatrix();
-  renderer.setSize(width, height);
-  renderer.render(scene, camera);
-});
+        dummy2 = new Dummy(new THREE.Vector3(20, 0, 20), Math.random() * 0xffffff, 2);
+        dummy2.init(scene);
 
-// Add the directional light
-const dirLight = new THREE.DirectionalLight(0xffffff);
-const backLight = new THREE.DirectionalLight(0x212121);
+        dummy3 = new Dummy(new THREE.Vector3(-20, 0, 20), Math.random() * 0xffffff, 2);
+        dummy3.init(scene);
 
-dirLight.castShadow = true;
-dirLight.shadow.mapSize.width = 2048;
-dirLight.shadow.mapSize.height = 2048;
-dirLight.position.set(20, 30, 15);
+        // Add arrow helpers
+        const xArrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), 20, 0xff0000);
+        const yArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 20, 0x8800ff);
+        const zArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 20, 0x0088ff);
 
-backLight.position.set(-20, -30, -15);
-scene.add(dirLight);
-scene.add(backLight);
-
-// Particle mechanics
-function Particle(object, m) {
-    this.obj = object
-    this.acc = new THREE.Vector3(0, 0, 0);
-    this.gravity = -3;
-    this.isGrounded = false;
-    this.vel = new THREE.Vector3();
-    this.mass = m;
-    this.applyForce = function(force) { // Input: Vec3 Force
-        this.acc.add(force.divideScalar(this.mass));
-    }
-    this.update = function () { // Input: DeltaTime (in seconds)
-        this.vel.add(this.acc);
-        var newVel = this.vel.clone().multiplyScalar(0.01);
-        this.gravity = -3;
-        this.obj.position.add(newVel);
-        this.acc.set(0, this.gravity, 0);
-        this.vel.multiplyScalar(0.975); // Damping
-    }
-}
-
-// Spring mechanics
-function Spring(part1, part2, kConst) {
-    this.p1 = part1;
-    this.p2 = part2;
-    this.restLen = this.p1.obj.position.distanceTo(this.p2.obj.position);
-    this.k = kConst;
-    this.updateSpringForce = function() { // Inspiration: https://github.com/wprimett/ThreeJS-SpringDeformer/blob/master/src/Spring.js
-        // Copy pos1 & pos2
-        var pos1 = new THREE.Vector3().copy(this.p1.obj.position);
-        var pos2 = new THREE.Vector3().copy(this.p2.obj.position);
-        // Distance b/w points
-        var dist = pos1.distanceTo(pos2) - this.restLen;
-        // Direction b/w points
-        var dir = pos1.sub(pos2).normalize();
+        xArrow.position.set(0, 10, 0);
+        yArrow.position.set(0, 10, 0);
+        zArrow.position.set(0, 10, 0);
         
-        // Calculate force using:
-        // Hooke's Law: F = -k * x; where x is the distance from restLen
-        var force = dir.multiplyScalar(-this.k * dist);
-        this.p1.applyForce(force);
-        this.p2.applyForce(force.multiplyScalar(-1));
-    }
-}
+        scene.add(xArrow);
+        scene.add(yArrow);
+        scene.add(zArrow);
 
-// Set the stage
-var planeGeom = new THREE.PlaneGeometry(32, 32);
-var planeMat = new THREE.MeshPhongMaterial({color: new THREE.Color("orange"), side: THREE.DoubleSide});
-const plane = new THREE.Mesh(planeGeom, planeMat);
-plane.rotation.x += Math.PI / 2;
-plane.position.y -= 10;
-plane.geometry.computeBoundingBox();
-plane.receiveShadow = true;
+		requestAnimationFrame( render );
+	};
 
-scene.add(plane);
-
-var sphereGeom = new THREE.SphereGeometry(1, 16, 16);
-var sphere1 = new THREE.Mesh(sphereGeom, new THREE.MeshPhongMaterial({color: /*Math.random() */ 0xff0000}));
-var sphere2 = new THREE.Mesh(sphereGeom, new THREE.MeshPhongMaterial({color: /*Math.random() */ 0x00ffff}));
-
-scene.add(sphere1, sphere2);
-
-sphere1.position.set(-5, 0, 0);
-sphere2.position.set(0, 3, 0);
-sphere1.castShadow = true;
-sphere2.castShadow = true;
-
-var draggables = [];
-draggables.push(sphere1, sphere2);
-
-const dragControls = new DragControls(draggables, camera, renderer.domElement);
-const orbitControls = new OrbitControls(camera, renderer.domElement);
-orbitControls.enabled = false;
-
-var particle1 = new Particle(sphere1, 1);
-var particle2 = new Particle(sphere2, 1);
-
-var spring = new Spring(particle1, particle2, 1);
-
-
-var dragging = false;
-
-dragControls.addEventListener('dragstart', () => {
-    dragging = true;
-});
-
-dragControls.addEventListener('dragend', () => {
-    dragging = false;
-});
-var record = false;
-document.addEventListener('keypress', (e) => {
-    if(e.altKey) {
-        orbitControls.enabled = true;
-        dragControls.enabled = false;
-    }
-    if(e.key == 'x') {
-        record = !record;
-    }
-});
-
-document.addEventListener('keyup', (e) => {
-    orbitControls.enabled = false;
-    dragControls.enabled = true;
-});
-
-var lastTime = Date.now();
-var newTime;
-var deltaTime;
-
-const sphereHelper = new THREE.BoxHelper( sphere1, 0xffff00 );
-const planeHelper = new THREE.BoxHelper( plane, 0xffffff );
-scene.add(sphereHelper, planeHelper);
-
-function isColliding(obj1, obj2) {
-    // Update the boxes for objects
-    obj1.geometry.computeBoundingBox();
-    obj1.updateMatrixWorld();
-    obj2.geometry.computeBoundingBox();
-    obj2.updateMatrixWorld(); 
-
-    var box1 = obj1.geometry.boundingBox.clone();
-    box1.applyMatrix4(obj1.matrixWorld);
-    var box2 = obj2.geometry.boundingBox.clone();
-    box2.applyMatrix4(obj2.matrixWorld);
-
-    return box1.intersectsBox(box2);
-}
-
-// Does the animation
-function animate() {
-    requestAnimationFrame(animate);
-
-    // Get the deltaTime
-    newTime = Date.now();
-    deltaTime = newTime - lastTime;
-    lastTime = newTime;
-
-    sphereHelper.update();
-    //console.log(isColliding(plane, sphere1));
-
-    spring.updateSpringForce();
-    //console.log(deltaTime);
-    particle1.update(deltaTime / 1000);
-    //particle2.update(deltaTime / 1000);
-
-    render();
-}
-
-function render() {
-    renderer.render(scene, camera);
-}
-
-
-// Initiate graphical loop
-animate();
+    // Got function from https://codepen.io/anon/pen/qNNNzJ
+    window.addEventListener('resize', function(e){
+        var width = window.innerWidth, height = window.innerHeight;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+        renderer.render(scene, camera);
+    });
+    
+    document.addEventListener("keydown", (e) => {
+        if(e.key == 'w') {
+            dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, 0, -1000), new THREE.Vector3(0, -3.5, 0));
+        } else if(e.key == 'a') {
+            dummy1.leftForearm.applyCentralImpulse(new THREE.Vector3(-1000, 0, 0));
+        } else if(e.key == 's') {
+            dummy1.leftForearm.applyCentralImpulse(new THREE.Vector3(0, 0, 1000));
+        } else if(e.key == 'd') {
+            dummy1.leftForearm.applyCentralImpulse(new THREE.Vector3(1000, 0, 0));
+        } else if(e.ctrlKey) {
+            dummy1.leftForearm.applyCentralImpulse(new THREE.Vector3(0, -500, 0));
+        } else if(e.shiftKey) {
+            dummy1.leftForearm.applyCentralImpulse(new THREE.Vector3(0, 1000, 0));
+        }
+    });
+	
+	render = function() {
+        //spring.updateSpringForce();
+		scene.simulate(); // run physics
+		renderer.render( scene, camera); // render the scene
+		requestAnimationFrame( render );
+	};
+	
+	window.onload = initScene();
 
     </script>
-
 </body>
 </html>
