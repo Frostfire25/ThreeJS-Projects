@@ -1,0 +1,43 @@
+// --------------------------------------- //
+  _____                                          
+ |  __ \                                         
+ | |  | |_   _ _ __ ___  _ __ ___  _   _         
+ | |  | | | | | '_ ` _ \| '_ ` _ \| | | |        
+ | |__| | |_| | | | | | | | | | | | |_| |        
+ |_____/ \__,_|_| |_| |_|_| |_| |_|\__, |        
+                                    __/ |        
+   _____ _                 _       |___/         
+  / ____(_)               | |     | |            
+ | (___  _ _ __ ___  _   _| | __ _| |_ ___  _ __ 
+  \___ \| | '_ ` _ \| | | | |/ _` | __/ _ \| '__|
+  ____) | | | | | | | |_| | | (_| | || (_) | |   
+ |_____/|_|_| |_| |_|\__,_|_|\__,_|\__\___/|_| 
+
+	By: Derek Costello and Alexander Elguezabal
+
+// --------------------------------------- //
+
+
+Usage Guide.
+
+Controls.
+W - Forward Walking
+A - Left Walking
+D - Right Walking
+S - Backwards Walking
+
+Mouse - Controls FOV movement.
+
+Left Click - Shoots a lazer (1.0x force)
+Right Click - Shoots a cannon ball (2.0x force)
+
+Overview.
+You spawn inside a 512x512 terrain. The goal of the game is to walk arround and shoot a variety of spawning
+dummys. Once shooting, the dummys will fly around. Their bodys will contor with the placement of the associated bullet.
+Dummys spawn within a 25 block radius of the players character. 
+If not shot, dummys will respawn within 60 seconds of the original spawntime.
+
+Walking is restrained to the bounding box of the terrain (512x512).
+
+General game music plays casually in the background, while lazer and gun sounds are also present when shooting.
+

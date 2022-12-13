@@ -169,7 +169,7 @@ function mouseClick(e) {
 }
 
 const audio = document.getElementById("audio");
-audio.volume = 0.25;
+audio.volume = 0.15;
 
 controls.addEventListener( 'lock', function () {
     // Playing audio
@@ -420,7 +420,7 @@ var clock = new THREE.Clock();
 var speed = 1; //units a second
 var delta = 0;
 clock.start();
-var secNeededToSpawn = getRandomArbitraryInt(10,20);
+var secNeededToSpawn = getRandomArbitraryInt(5,10);
 
 function spawnRandomDummy() {
 
