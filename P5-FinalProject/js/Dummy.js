@@ -256,6 +256,7 @@ function Dummy(spawn, col, m) {
                     scene.remove(mesh);
                 });
                 this.__allMeshes == null;
+                despawnDummy(this);
             }, 10000);
         }
     }
