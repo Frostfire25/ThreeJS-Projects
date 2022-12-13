@@ -111,7 +111,7 @@ Physijs.scripts.ammo = '/js/ammo.js';
 // Objects & Functions
 // Gets a random number
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
-/*function getRandomArbitrary(min, max) {
+function getRandomArbitrary(min, max) {
   return Math.random() * (max - min) + min;
 }
 
@@ -121,7 +121,7 @@ function getRandomArbitraryInt(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
-}*/
+}
 
 // Define scene
 var scene = new Physijs.Scene;
@@ -230,14 +230,6 @@ function moveClbk(e) {
 renderer.domElement.addEventListener('mousedown', downClbk);
 renderer.domElement.addEventListener('mouseup', upClbk);
 
-// Testing dummy
-var dummy1 = new Dummy(
-    new THREE.Vector3(100, 100, 0),     // Start position
-    Math.random() * 0xffffff,       // Color
-    25                              // Mass
-);
-dummy1.init(scene);
-
 /**
  * KeyPress Events & Walking
  */ 
@@ -300,9 +292,13 @@ mtlLoader.load('./media/uziGold.mtl', function(materials) {
         gun = mesh;
 
         gun.position.set(0.12, -0.2, -0.5);
-        gun.scale.set(7,7,7);
+        gun.scale.set(5,5,5);
         camera.add(gun);
         camera.position.y = 200;
+
+        // Move the player down
+        moveCamera( "w" ); 
+
     });
 });
 
@@ -319,11 +315,11 @@ function moveCamera( direction ) {
         // send two back
         camera.position.x = halfTerrain - (moveSpeed * sendBackMoveSpeedMultiplier);
     } else if(camera.position.x < -1 * (halfTerrain - moveSpeed)) {
-        camera.position.x = halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
+        camera.position.x = -1 * halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
     } else if(camera.position.z > (halfTerrain - moveSpeed)) {
         camera.position.z = halfTerrain - (moveSpeed * sendBackMoveSpeedMultiplier);
     } else if(camera.position.z < -1 * (halfTerrain - moveSpeed)) {
-        camera.position.z = halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
+        camera.position.z = -1 * halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
     }
     
     // Move in the direction
@@ -369,6 +365,97 @@ function moveCamera( direction ) {
 }
 
 /**
+ * Dummy Spawning
+ */ 
+
+var numberOfDummies = 0;
+
+// Spawns a dummy at a position
+function spawnDummy(vec) {
+    // Testing dummy
+    var dummy1 = new Dummy(
+        vec,       // Start position
+        Math.random() * 0xffffff,       // Color
+        25                              // Mass
+    );
+
+    dummy1.init(scene);
+}
+
+
+const maxNumOfDummies = 5;
+
+// Clock object for dummy spawning
+var clock = new THREE.Clock();
+var speed = 1; //units a second
+var delta = 0;
+clock.start();
+var secNeededToSpawn = getRandomArbitraryInt(10,20);
+
+function spawnRandomDummy() {
+
+    // If the clock time has not passed, return.
+    if(clock.getElapsedTime() < secNeededToSpawn)
+        return;
+
+    if(numberOfDummies < maxNumOfDummies) {
+
+        // Find a random position for the dummy in a radius of the camera
+        const player_dummy_rad = 25;
+
+        var dummyPos = camera.position.clone();
+        dummyPos.x = dummyPos.x + getRandomArbitraryInt(-player_dummy_rad, player_dummy_rad);
+        dummyPos.z = dummyPos.x + getRandomArbitraryInt(-player_dummy_rad, player_dummy_rad);
+
+        // If the dummy's position is off the terrain, minus x back
+        const halfTerrain = (ground.terrainSize/2);
+        if(dummyPos.x > halfTerrain) {
+            dummyPos.x -= player_dummy_rad;
+        } else if(dummyPos.x < (-1*halfTerrain)) {
+            dummyPos.x += player_dummy_rad;
+        }
+
+        if(dummyPos.z > halfTerrain) {
+            dummyPos.z -= player_dummy_rad;
+        } else if(dummyPos.z < (-1*halfTerrain)) {
+            dummyPos.z += player_dummy_rad;
+        }
+
+        // Find the y-intercept with the terrain
+        // Assign an arbitrayerily high y-value to the dummy, and raycast downward.
+        dummyPos.y = 3000;
+
+        // Inspiration from https://io76.com/nca-map/
+        raycaster.set(dummyPos, new THREE.Vector3(0, -1, 0).normalize());
+	    var intersects = raycaster.intersectObject( ground.mesh );
+	
+        // If we do not interset, go up and try again
+        if(intersects.length <= 0) {
+
+        } 
+        // We have an intersection, use 0
+        else {
+            dummyPos.y = (dummyPos.y - intersects[0].distance) + 2;
+        }
+
+        // Spawn the dummy
+        spawnDummy(dummyPos);
+        
+        // Increase the number of dummies
+        numberOfDummies++;
+
+        // Restart the clock
+        clock = new THREE.Clock();
+        clock.start();
+        secNeededToSpawn = getRandomArbitraryInt(10,20);
+    }
+}
+
+
+
+
+
+/**
  * Updates the sprites position based on the camera
  
  function updateGunPosition() {
@@ -387,7 +474,6 @@ function moveCamera( direction ) {
 	);
 }*/ 
 
-
 // Does the animation
 function animate() {
     // Simulate the scene
@@ -400,6 +486,8 @@ function animate() {
     // Animate the gun every time we render
     //updateGunPosition();
 
+    spawnRandomDummy();
+
     render();
 }
 
@@ -410,8 +498,7 @@ function render() {
 // Initiate graphical loop
 animate();
 
-
-    </script>
+</script>
 
 </body>
 </html>
