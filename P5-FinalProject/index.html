@@ -1,16 +1,91 @@
 <html>
 <head>
-    <title>Forest Walk Project (4)</title>
+    <title> Final Project - Alexander Elguezabal - Derek Costello </title>
 </head>
 <body>
 
     <canvas id="myCanvas"></canvas>
 
-<script type="module">
+<script id = "vertexShader" type = "x-shader/x-vertex">
+// Shift vertex position along normal
 
+uniform sampler2D bumpTexture; // bump texture is lookup in texture image
+uniform float bumpScale; // amount vertex is displaced by the bumpTexture
+
+// varying = data to be shared with fragment shader
+varying float vAmount; // Red color value in a texel.
+
+void main() {
+    vec4 bumpData = texture2D( bumpTexture, uv ); // color value of the texel/cordonate
+    vAmount = bumpData.r; // get the red value of the texel art
+
+    // move the position along the normal (direction of the vertex)
+    //vec3 newPosition = position + normal * bumpScale * vAmount;
+
+    // Calculate new position of vertex
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( position + normal, 1.0 );
+}
+</script>
+
+<script id = "fragmentShader" type = "x-shader/x-vertex">
+// operates on "fragment of an object and tells what the color of the fragment is supposed to be.
+
+// varying is a variable that contains data from the vertex shader to the fragment shader.
+varying float vAmount; // Received from vertex shader, represents the red value of a texel.
+
+void main() {
+    //                  Color Gradient main                    Color Gradient Edge      
+    //                      minHt maxHt mapHt                  minHt maxHt mapHt             RGB color
+    vec3 water = (smoothstep(0.01, 0.99, vAmount/0.2) - smoothstep(0.15, 0.16, vAmount)) * vec3(0.0, 0.0, 0.67);
+    
+    // Sand gradient.
+    vec3 sand = (smoothstep(0.15, 0.16, vAmount) - smoothstep(0.16, 0.18, vAmount)) * vec3(0.8, 0.7, 0.5);
+
+    // Grass layer
+    vec3 grass = (smoothstep(0.16, 0.20, vAmount) - smoothstep(0.18, 0.30, vAmount)) * vec3(0.01, 0.5, 0.2);
+    
+    // Dirt layer
+    vec3 dirt = (smoothstep(0.20, 0.34, vAmount) - smoothstep(0.30, 0.42, vAmount)) * vec3(0.4, 0.25, 0.21);
+
+    // Dirt2 layer
+    vec3 dirt2 = (smoothstep(0.34, 0.52, vAmount) - smoothstep(0.42, 0.65, vAmount)) * vec3(0.45, 0.35, 0.31);
+
+    // Dirt3 layer
+    vec3 dirt3 = (smoothstep(0.52, 0.67, vAmount) - smoothstep(0.65, 0.75, vAmount)) * vec3(0.55, 0.45, 0.37);
+    
+    // Dirt4 layer
+    vec3 dirt4 = (smoothstep(0.67, 0.78, vAmount) - smoothstep(0.75, 0.82, vAmount)) * vec3(0.65, 0.75, 0.42);
+
+    // Dirt5 layer
+    vec3 dirt5 = (smoothstep(0.74, 0.84, vAmount) - smoothstep(0.82, 0.93, vAmount)) * vec3(0.75, 0.85, 0.5);
+
+    // Snow layer
+    vec3 snow = (smoothstep(0.84, 0.94, vAmount) - smoothstep(0.93, 0.97, vAmount)) * vec3(0.99, 0.99, 0.99);
+
+    // Ice layer
+    vec3 ice = (smoothstep(0.93, 0.99, vAmount) - smoothstep(0.97, 0.9999, vAmount)) * vec3(0.87, 0.87, 0.99);
+
+    gl_FragColor = vec4( ice + snow + dirt5 + dirt4 + dirt3 + dirt2 + dirt + grass + sand + water, 1.0 );
+}
+</script>
+<!--THREE.JS Scripts-->
+<script src="/js/three.js"></script>
+<script type="text/javascript" src="/js/MTLLoader.js"></script>
+<script type="text/javascript" src="/js/OBJLoader.js"></script>
+<script type="text/javascript" src="/js/PointerLockControls.js"></script>
+<script type="text/javascript" src="/js/OrbitControls.js"></script>
+
+<!--PHYSI.JS Scripts-->
+<script type="text/javascript" src="/js/physi.js"></script>
+
+<!--Object Scripts-->
+<script type="text/javascript" src="/js/Ground.js"></script>
+<script type="text/javascript" src="/js/Dummy.js"></script>
+
+<script type="text/javascript">
 
 /**
- * Forest Walk Project
+ * Final Project
  * By:
  *  - Derek Costello
  *  - Alexander Elguezabal
@@ -18,16 +93,16 @@
  *  WASD keys to move around
  *  Moving the mouse pans your vision
  * 
- *  To view the sun press(o)
- *  To view the moon press(p)
- */ 
+ *  Click to shoot at target dummies
+ */
 
-import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
-import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
-import { PointerLockControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/PointerLockControls.js";
-//import { MeshSurfaceSampler } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/MeshSurfaceSampler.js";
-//import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier2d-compat';
-
+/**
+ * Loading Physi.js
+ */
+'use strict';
+	
+Physijs.scripts.worker = '/js/physijs_worker.js';
+Physijs.scripts.ammo = '/js/ammo.js';
 
 /**
  * Utility Methods
@@ -36,7 +111,7 @@ import { PointerLockControls } from "http://cs.merrimack.edu/~stuetzlec/three.js
 // Objects & Functions
 // Gets a random number
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
-function getRandomArbitrary(min, max) {
+/*function getRandomArbitrary(min, max) {
   return Math.random() * (max - min) + min;
 }
 
@@ -46,17 +121,17 @@ function getRandomArbitraryInt(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
+}*/
 
 // Define scene
-var scene = new THREE.Scene();
+var scene = new Physijs.Scene;
 
 // Define texture loader
 const loader = new THREE.TextureLoader();
 
 // Camera
-var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight * 2, .1, 3000 );
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
+camera.position.set(0,200,0);
 scene.add( camera );
 
 // Define renderer
@@ -76,12 +151,258 @@ window.addEventListener('resize', function(e){
   renderer.render(scene, camera);
 });
 
-const orbinControls = new OrbitControls(camera, renderer.domElement);
-//const controls = new PointerLockControls( camera, document.body );
+let light = new THREE.AmbientLight(0xffffff, 1);
+light.position.set(100,100,100);
+scene.add(light);
+
+// Adding in pointer lock controls
+const controls = new THREE.PointerLockControls( camera, document.body );
+// const controls = new THREE.OrbitControls(camera, renderer.domElement);
+renderer.domElement.addEventListener('click', mouseClick);
+function mouseClick(e) {
+    controls.lock();
+}
+
+/* Get gorund material */
+const bumpTexture = new THREE.TextureLoader().load( './media/height_map_1.jpg' )
+const bumpScale = 51.2;
+// Create uniforms to send to the shaders.
+const uniforms = {
+    bumpTexture: { value: bumpTexture },
+    bumpScale: { value: bumpScale }, // Higher the number, the more the mesh verticies will be displaced.
+};
+
+// Create the ground material
+const groundMat = new THREE.ShaderMaterial({ 
+    uniforms: uniforms,
+    vertexShader: document.getElementById( 'vertexShader' ).textContent,
+    fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
+});
+
+var ground = new Ground(groundMat);
+ground.init(scene);
+
+
+/**
+ * Adding in grid sky
+ */
+// Adding sky background.
+// Assistance and method from https://www.youtube.com/watch?v=oqKzxPMLWxo &
+// https://www.youtube.com/watch?v=cp-H_6VODko
+const skyLoader = new THREE.CubeTextureLoader();
+const texture = skyLoader.load([
+      './media/skybox/dust_ft.jpg',
+      './media/skybox/dust_bk.jpg',
+      './media/skybox/dust_up.jpg',
+      './media/skybox/dust_dn.jpg',
+      './media/skybox/dust_rt.jpg',
+      './media/skybox/dust_lf.jpg',
+  ]);
+texture.encoding = THREE.sRGBEncoding;
+scene.background = texture;
+
+
+
+/**
+ * Camera movement 
+ */ 
+/* Mouse Moving
+ * Got assistance from https://stackoverflow.com/questions/37837189/turning-around-using-mouse-in-three-js
+ */
+var startX, startY;
+function downClbk(e) {
+  renderer.domElement.addEventListener('mousemove', moveClbk);
+  startX = e.clientX; startY = e.clientY;
+}
+function upClbk(e) {
+  renderer.domElement.removeEventListener('mousemove', moveClbk);
+}
+function moveClbk(e) {
+  var delX = e.clientX - startX;
+  var delY = e.clientY - startY;
+  var width = window.innerWidth, height = window.innerHeight, min = Math.min(width, height);
+  camera.rotation.x += delY/min;
+  camera.rotation.y += delX/min;
+  startX = e.clientX; startY = e.clientY;
+  //renderer.render(scene, camera);
+}
+renderer.domElement.addEventListener('mousedown', downClbk);
+renderer.domElement.addEventListener('mouseup', upClbk);
+
+// Testing dummy
+var dummy1 = new Dummy(
+    new THREE.Vector3(100, 100, 0),     // Start position
+    Math.random() * 0xffffff,       // Color
+    25                              // Mass
+);
+dummy1.init(scene);
+
+/**
+ * KeyPress Events & Walking
+ */ 
+
+// Keyboard Input Listener
+document.addEventListener('keydown', (e) => {
+
+    if(e.key == 'i') {
+        //dummy1.enableAllPhysics();
+        console.log(dummy1);
+        dummy1.leftForearm.setAngularFactor(new THREE.Vector3(1, 1, 1));
+        dummy1.leftForearm.setLinearFactor(new THREE.Vector3(1, 1, 1));
+        console.log(dummy1.leftForearm.getAngularVelocity());
+        console.log(dummy1.leftForearm.getLinearVelocity());
+        dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, 0, -1000), new THREE.Vector3(0, -3.5, 0));
+        //box.applyImpulse(new THREE.Vector3(0, -500000000000, -1000000000000), new THREE.Vector3(0, -3.5, 0));
+    } else if(e.key == 'j') {
+        dummy1.enablePhysics(dummy1.leftForearm);
+        dummy1.leftForearm.applyImpulse(new THREE.Vector3(-1000, 0, 0), new THREE.Vector3(0, -3.5, 0));
+    } else if(e.key == 'k') {
+        dummy1.enablePhysics(dummy1.leftForearm);
+        dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, -3.5, 0));
+    } else if(e.key == 'l') {
+        dummy1.enablePhysics(dummy1.leftForearm);
+        dummy1.leftForearm.applyImpulse(new THREE.Vector3(1000, 0, 0), new THREE.Vector3(0, -3.5, 0));
+    } else if(e.ctrlKey) {
+        dummy1.enablePhysics(dummy1.leftForearm);
+        dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, -500, 0), new THREE.Vector3(0, -3.5, 0));
+    } else if(e.shiftKey) {
+        dummy1.enablePhysics(dummy1.leftForearm);
+        dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, 1000, 0), new THREE.Vector3(0, -3.5, 0));
+    } else {
+        moveCamera(e.key);
+    }
+});
+
+// Crosshair
+const crosshair = loader.load('./media/mycrosshair.png');
+crosshair.anisotropy = renderer.capabilities.getMaxAnisotropy();
+var sprite = new THREE.Sprite(new THREE.SpriteMaterial({map: crosshair, fog: false, depthTest: false, depthWrite: false}));
+sprite.scale.set(0.2, 0.2, 0.2);
+sprite.position.set(0, 0, 0);
+scene.add( sprite );
+
+/**
+const gunTexture = loader.load('./media/gun.png');
+gunTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+var gun = new THREE.Sprite(new THREE.SpriteMaterial({map: gunTexture, fog: false, depthTest: false, depthWrite: false}));
+gun.scale.set(0.5, camera.aspect * 0.15, 0.5)
+gun.position.set(0, 0, 0);
+scene.add( gun );
+**/
+
+var gun;
+//const loadingManager = new THREE.LoadingManager();
+var mtlLoader = new THREE.MTLLoader();
+mtlLoader.load('./media/uziGold.mtl', function(materials) {
+    materials.preload();
+				
+    var objLoader = new THREE.OBJLoader();
+    objLoader.setMaterials(materials);
+
+    objLoader.load('./media/uziGold.obj', function(mesh) {
+        gun = mesh;
+
+        console.log(gun);
+
+        gun.position.set(0,2,0);
+        gun.scale.set(7,7,7);
+        scene.add(gun);
+    });
+});
+
+
+//raycaster
+var raycaster = new THREE.Raycaster();
+function moveCamera( direction ) {
+    const moveSpeed = 1;
+    const halfTerrain = (ground.terrainSize/2);
+    const sendBackMoveSpeedMultiplier = 5;
+
+    // If out of bounds return
+    if(camera.position.x > (halfTerrain - moveSpeed)) {
+        // send two back
+        camera.position.x = halfTerrain - (moveSpeed * sendBackMoveSpeedMultiplier);
+    } else if(camera.position.x < -1 * (halfTerrain - moveSpeed)) {
+        camera.position.x = halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
+    } else if(camera.position.z > (halfTerrain - moveSpeed)) {
+        camera.position.z = halfTerrain - (moveSpeed * sendBackMoveSpeedMultiplier);
+    } else if(camera.position.z < -1 * (halfTerrain - moveSpeed)) {
+        camera.position.z = halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
+    }
+    
+    // Move in the direction
+    switch( direction ) {
+        case 'w': {
+            camera.translateZ(-moveSpeed);            
+        }; break;
+        case 'a': {
+            camera.translateX(-moveSpeed);
+        }; break;
+        case 's': {
+            camera.translateZ(moveSpeed);
+        }; break;
+        case 'd': {
+            camera.translateX(moveSpeed);
+        }; break;
+    }    
+    // Change camera y according to raycasting
+
+    
+    // Inspiration from https://io76.com/nca-map/
+    raycaster.set(camera.position, new THREE.Vector3(0, -1, 0).normalize());
+	var intersects = raycaster.intersectObject( ground.mesh );
+	
+    // If we do not interset, go up and try again
+    if(intersects.length <= 0) {
+
+    } 
+    // We have an intersection, use 0
+    else {
+        camera.position.y = (camera.position.y - intersects[0].distance) + 5;
+    }
+}
+
+/**
+ * Updates the sprites position based on the camera
+ */ 
+ function updateCrosshairPosition() {
+    var vector = new THREE.Vector3(); // create once and reuse it!
+    camera.getWorldDirection( vector );
+
+    sprite.position.set(camera.position.x + vector.x, camera.position.y + vector.y, camera.position.z + vector.z);
+}
+
+/**
+ * Updates the sprites position based on the camera
+ */ 
+ function updateGunPosition() {
+    var vector = new THREE.Vector3(); // create once and reuse it!
+    camera.getWorldDirection( vector );
+
+    gun.position.set(
+        camera.position.x - Math.sin(camera.rotation.y) * 0.5, 
+        camera.position.y - 0.25, 
+        camera.position.z + Math.cos(camera.position.y) * 0.5);
+
+    gun.rotation.set(
+		camera.rotation.x,
+		camera.rotation.y - Math.PI,
+		camera.rotation.z
+	);
+}
+
 
 // Does the animation
 function animate() {
+    // Simulate the scene
+    scene.simulate();
     requestAnimationFrame(animate);
+
+    // Animate the crosshair (sprite) every time we render
+    updateCrosshairPosition();
+
+    // Animate the gun every time we render
+    updateGunPosition();
 
     render();
 }
@@ -90,9 +411,12 @@ function render() {
     renderer.render(scene, camera);
 }
 
+// Move the camera one step to bring it to the correct positon
+moveCamera('w');
 
 // Initiate graphical loop
 animate();
+
 
     </script>
 

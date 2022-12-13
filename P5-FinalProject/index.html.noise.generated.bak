@@ -1,0 +1,792 @@
+<html>
+<head>
+    <title> Final Project - Alexander Elguezabal - Derek Costello </title>
+</head>
+<body>
+
+    <canvas id="myCanvas"></canvas>
+
+<script id = "vertexShader" type = "x-shader/x-vertex">
+// Shift vertex position along normal
+
+uniform sampler2D bumpTexture; // bump texture is lookup in texture image
+uniform float bumpScale; // amount vertex is displaced by the bumpTexture
+
+// varying = data to be shared with fragment shader
+varying float vAmount; // Red color value in a texel.
+
+void main() {
+    vec4 bumpData = texture2D( bumpTexture, uv ); // color value of the texel/cordonate
+    vAmount = bumpData.r; // get the red value of the texel art
+
+    // move the position along the normal (direction of the vertex)
+    //vec3 newPosition = position + normal * bumpScale * vAmount;
+
+    // Calculate new position of vertex
+    gl_Position = projectionMatrix * modelViewMatrix * vec4( position + normal, 1.0 );
+}
+</script>
+
+<script id = "fragmentShader" type = "x-shader/x-vertex">
+// operates on "fragment of an object and tells what the color of the fragment is supposed to be.
+
+// varying is a variable that contains data from the vertex shader to the fragment shader.
+varying float vAmount; // Received from vertex shader, represents the red value of a texel.
+
+void main() {
+    //                  Color Gradient main                    Color Gradient Edge      
+    //                      minHt maxHt mapHt                  minHt maxHt mapHt             RGB color
+    vec3 water = (smoothstep(0.01, 0.99, vAmount/0.2) - smoothstep(0.15, 0.16, vAmount)) * vec3(0.0, 0.0, 0.67);
+    
+    // Sand gradient.
+    vec3 sand = (smoothstep(0.15, 0.16, vAmount) - smoothstep(0.16, 0.18, vAmount)) * vec3(0.8, 0.7, 0.5);
+
+    // Grass layer
+    vec3 grass = (smoothstep(0.16, 0.20, vAmount) - smoothstep(0.18, 0.30, vAmount)) * vec3(0.01, 0.5, 0.2);
+    
+    // Dirt layer
+    vec3 dirt = (smoothstep(0.20, 0.34, vAmount) - smoothstep(0.30, 0.42, vAmount)) * vec3(0.4, 0.25, 0.21);
+
+    // Dirt2 layer
+    vec3 dirt2 = (smoothstep(0.34, 0.52, vAmount) - smoothstep(0.42, 0.65, vAmount)) * vec3(0.45, 0.35, 0.31);
+
+    // Dirt3 layer
+    vec3 dirt3 = (smoothstep(0.52, 0.67, vAmount) - smoothstep(0.65, 0.75, vAmount)) * vec3(0.55, 0.45, 0.37);
+    
+    // Dirt4 layer
+    vec3 dirt4 = (smoothstep(0.67, 0.78, vAmount) - smoothstep(0.75, 0.82, vAmount)) * vec3(0.65, 0.75, 0.42);
+
+    // Dirt5 layer
+    vec3 dirt5 = (smoothstep(0.74, 0.84, vAmount) - smoothstep(0.82, 0.93, vAmount)) * vec3(0.75, 0.85, 0.5);
+
+    // Snow layer
+    vec3 snow = (smoothstep(0.84, 0.94, vAmount) - smoothstep(0.93, 0.97, vAmount)) * vec3(0.99, 0.99, 0.99);
+
+    // Ice layer
+    vec3 ice = (smoothstep(0.93, 0.99, vAmount) - smoothstep(0.97, 0.9999, vAmount)) * vec3(0.87, 0.87, 0.99);
+
+    gl_FragColor = vec4( ice + snow + dirt5 + dirt4 + dirt3 + dirt2 + dirt + grass + sand + water, 1.0 );
+}
+</script>
+
+<script type="module">
+
+
+/**
+ * Forest Walk Project
+ * By:
+ *  - Derek Costello
+ *  - Alexander Elguezabal
+ * 
+ *  WASD keys to move around
+ *  Moving the mouse pans your vision
+ * 
+ *  To view the sun press(o)
+ *  To view the moon press(p)
+ */ 
+
+import * as THREE from "http://cs.merrimack.edu/~stuetzlec/three.js-master/build/three.module.js";
+import { OrbitControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/OrbitControls.js";
+import { PointerLockControls } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/PointerLockControls.js";
+import FastNoiseLite from "./lib/FastNoiseLite.js";
+//import { MeshSurfaceSampler } from "http://cs.merrimack.edu/~stuetzlec/three.js-master/examples/jsm/controls/MeshSurfaceSampler.js";
+//import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier2d-compat';
+
+
+/**
+ * Utility Methods
+ */ 
+
+// Objects & Functions
+// Gets a random number
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random
+function getRandomArbitrary(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+// Gets a random integer
+// https://stackoverflow.com/questions/1527803/generating-random-whole-numbers-in-javascript-in-a-specific-range
+function getRandomArbitraryInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// Define scene
+var scene = new THREE.Scene();
+
+// Define texture loader
+const loader = new THREE.TextureLoader();
+
+// Camera
+var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight * 2, .1, 3000 );
+camera.position.set(0,200,0);
+scene.add( camera );
+
+// Define renderer
+var renderer = new THREE.WebGLRenderer({canvas: myCanvas, antialias: true});
+renderer.setClearColor(0x000000);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+// Got function from https://codepen.io/anon/pen/qNNNzJ
+window.addEventListener('resize', function(e){
+  var width = window.innerWidth, height = window.innerHeight;
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height);
+  renderer.render(scene, camera);
+});
+
+//const controls = new PointerLockControls( camera, document.body );
+
+let light = new THREE.AmbientLight(0xffffff, 1);
+light.position.set(100,100,100);
+scene.add(light);
+
+// Adding in orbit controls
+const controls = new PointerLockControls( camera, document.body );
+//const controls = new OrbitControls( camera, renderer.domElement );
+renderer.domElement.addEventListener('click', mouseClick);
+function mouseClick(e) {
+    controls.lock();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Creating the heightfield for the raycaster
+ */ 
+
+const terrainSize = 512; 
+let noise = new FastNoiseLite();
+
+/**
+noise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+//noise.SetSeed(getRandomArbitrary(2000,200000));
+//noise.SetRotationType3D(FastNoiseLite.RotationType3D.ImproveXZPlanes);
+noise.SetFractalType(FastNoiseLite.FractalType.FBm);
+//noise.SetFrequency(getRandomArbitrary(0,1));
+**/
+
+noise.SetNoiseType(FastNoiseLite.NoiseType.OpenSimplex2);
+noise.SetFractalType(FastNoiseLite.FractalType.FBm);
+
+
+var seed = getRandomArbitraryInt(-9999999999, 9999999999);
+console.log("World Seed: " + seed);
+noise.SetSeed(seed);
+noise.SetFractalOctaves(3);
+noise.SetFrequency(0.006);
+
+
+// Gather noise data
+let terrain = [];
+const scaler = 1000;
+for (let y = 0; y < terrainSize + 1; y++) {
+    for (let x = 0; x < terrainSize + 1; x++) {
+        if (typeof terrain[x] == 'undefined') {
+            terrain[x] = [];
+        }
+
+        terrain[x][y] = noise.GetNoise(x,y) * scaler;
+    }
+}
+
+
+/**
+for(var i = 0; i < terrainSize + 1; i++) {
+      terrain[i] = new Array(terrainSize + 1);
+      for(var j = 0; j < terrainSize + 1; j++) {
+          terrain[i][j] = -1;
+     }
+}
+
+// Define 4 corners
+terrain[0][0] = 100; // TL
+terrain[terrainSize][0] = 130; // TR
+terrain[0][terrainSize] = 200; // BL
+terrain[terrainSize][terrainSize] = 160; // BR
+
+// Mountian in the middle
+var lowRange = 0;
+var highRange = 3000;
+
+// Define center
+// Mountian in the middle
+const height = getRandomArbitraryInt(highRange/2, highRange);
+terrain[terrainSize/2][terrainSize/2] = height + (height/2);
+
+// Small mountian's
+const heightSmallMountian = getRandomArbitraryInt(highRange/4, highRange/2);
+const heightSmallMountian2 = getRandomArbitraryInt(highRange/4, highRange/2);
+const heightSmallMountian3 = getRandomArbitraryInt(highRange/4, highRange/2);
+const heightSmallMountian4 = getRandomArbitraryInt(highRange/4, highRange/2);
+
+terrain[terrainSize/4][terrainSize/4] = heightSmallMountian;
+terrain[terrainSize/4][terrainSize] = heightSmallMountian2;
+terrain[terrainSize][terrainSize/4] = heightSmallMountian3;
+terrain[terrainSize][terrainSize] = heightSmallMountian4;
+
+// Smaller mountians
+// Small mountian's
+const heightMediumMountian = getRandomArbitraryInt(highRange/3, highRange/2);
+const heightMediumMountian2 = getRandomArbitraryInt(highRange/3, highRange/2);
+const heightMediumMountian3 = getRandomArbitraryInt(highRange/3, highRange/2);
+const heightMediumMountian4 = getRandomArbitraryInt(highRange/3, highRange/2);
+
+terrain[terrainSize/8][terrainSize/8] = heightMediumMountian;
+terrain[terrainSize/8][terrainSize] = heightMediumMountian2;
+terrain[terrainSize][terrainSize/8] = heightMediumMountian3;
+terrain[terrainSize][terrainSize] = heightMediumMountian4;
+
+
+
+// Define random points center
+
+
+terrain[32][64] = -1000;
+terrain[24][56] = -670;
+terrain[64][96] = -600;
+**/
+
+/**
+// Loops through every point.
+for(var i = 0; i < terrainSize; i++) {
+       for(var j = 0; j < terrainSize; j++) {
+           
+       var allow = getRandomArbitraryInt(0,1000);
+       if(allow < 980)
+         continue;
+
+       var random = getRandomArbitraryInt(0,50);
+       if(random > 30 && random <= 40) {
+            terrain[i][j] = 0;
+        } else if ( random > 40 && random <= 48) {
+            terrain[i][j] = getRandomArbitraryInt(50,150);
+        } else if(random > 48) {
+            terrain[i][j] = getRandomArbitrary(150,450);
+        } else {
+            terrain[i][j] = 0;
+        }
+    }
+}
+*/
+
+
+
+//console.log(terrain);
+
+// Perform the fractilized smoothing
+//doFractile(terrain, [0,0], [terrainSize,0], [0,terrainSize], [terrainSize,terrainSize]);
+//smoothTerrain(terrain, 1);
+
+// Map the heights to a geometry
+var geom = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize, terrainSize);
+//var groundMat = new THREE.MeshPhongMaterial({ color: new THREE.Color("orange"), side: THREE.DoubleSide, });
+
+
+const bumpTexture = new THREE.TextureLoader().load( './media/height_map_1.jpg' )
+const bumpScale = terrainSize/10;
+// Create uniforms to send to the shaders.
+const uniforms = {
+    bumpTexture: { value: bumpTexture },
+    bumpScale: { value: bumpScale }, // Higher the number, the more the mesh verticies will be displaced.
+};
+
+// Create the ground material
+const groundMat = new THREE.ShaderMaterial({ 
+    uniforms: uniforms,
+    vertexShader: document.getElementById( 'vertexShader' ).textContent,
+    fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
+});
+
+
+
+var verts = [];
+
+/*
+for(var i = 0; i < (terrainSize+1)**2; i++) {
+    verts[i] = terrain[i % (terrainSize+1)][Math.floor(i / (terrainSize+1))];
+}
+*/
+// For the heightmap parsing.
+console.log((terrainSize+1)**2);
+for(var i = 0; i < (terrainSize+1)**2; i++) {
+   verts[i] = terrain[i % (terrainSize-1)][i % (terrainSize-1)];
+}
+
+//console.log("Verts of Geom");
+//console.log(verts);
+
+//console.log(geom);
+
+for ( var i = 0; i < geom.vertices.length; i++ ) {
+    geom.vertices[i].z = verts[i] * 0.02;
+    //geom.vertices[i].y = verts[i];
+   
+    // There is a 1 in 1000 chance a tree spawns on this vertex
+    //if(getRandomArbitraryInt(0, 1000) <= 1) {
+    //    var tree = new Tree("B", 4);
+    //    tree.drawTree([25, 35, 45]);
+    //    tree.group.position.set(geom.vertices[i].x, verts[i] * 0.02, geom.vertices[i].y);
+    //}
+}
+
+
+
+
+geom.verticesNeedUpdate = true;
+geom.computeFaceNormals();
+geom.computeVertexNormals();
+
+function doFractile(ter, tl, tr, bl, br) {
+
+    // Base case
+    if(tl[0] + 1 == tr[0] || tl[0] + 1 == bl[0])
+       return;
+
+    var center = [(tl[0] + tr[0]) / 2, (tl[1] + bl[1]) / 2];
+        
+    if(ter[center[0]][center[1]] == -1) { // If no center value is present, compute center
+        ter[center[0]][center[1]] = ( // Smooth the center
+            ter[tl[0]][tl[1]] +
+            ter[tr[0]][tr[1]] +
+            ter[bl[0]][bl[1]] +
+            ter[br[0]][br[1]]
+            ) / 4;
+        }
+        // Compute sides
+        // Left
+        var left = [tl[0], center[1]];
+        if(ter[left[0]][left[1]] == -1) {
+            ter[left[0]][left[1]] = (ter[tl[0]][tl[1]] + ter[bl[0]][bl[1]]) / 2; // Avg of tl and bl
+        }
+        // Right
+        var right = [tr[0], center[1]];
+        if(ter[right[0]][right[1]] == -1) {
+            ter[right[0]][right[1]] = (ter[tr[0]][tr[1]] + ter[br[0]][br[1]]) / 2; // Avg of tr and br
+        }
+        // Top
+        var top = [center[0], tl[1]];
+        if(ter[top[0]][top[1]] == -1) {
+            ter[top[0]][top[1]] = (ter[tl[0]][tl[1]] + ter[tr[0]][tr[1]]) / 2; // Avg of tl and tr
+        }
+        // Bottom
+        var bottom = [center[0], bl[1]];
+        if(ter[bottom[0]][bottom[1]] == -1) {
+            ter[bottom[0]][bottom[1]] = (ter[bl[0]][bl[1]] + ter[br[0]][br[1]]) / 2; // Avg of bl and br
+        }
+
+        // Call for four quadrants
+        doFractile(ter, tl, top, left, center);       // Top left quadrant
+        doFractile(ter, top, tr, center, right);      // Top right quadrant
+        doFractile(ter, left, center, bl, bottom);    // Bottom left quadrant
+        doFractile(ter, center, right, bottom, br);   // Bottom right quadrant
+        
+}
+
+function smoothTerrain(ter, numTimes) {
+        console.log("Smoothing terrain");
+        for(var t = 0; t < numTimes; t++) { // Do it this many times
+            // Do the corners
+            // 1: Top left
+            ter[0][0] = (
+                ter[0][1] +
+                ter[1][1] +
+                ter[1][0]
+            ) / 3;
+            // 2: Top right
+            ter[terrainSize][0] = (
+                ter[terrainSize - 1][0] +
+                ter[terrainSize - 1][1] +
+                ter[terrainSize][1]
+            ) / 3;
+            // 3: Bottom left
+            ter[0][terrainSize] = (
+                ter[0][terrainSize-1] +
+                ter[1][terrainSize-1] +
+                ter[1][terrainSize]
+            ) / 3;
+            // 4: Bottom right
+            ter[terrainSize][terrainSize] = (
+                ter[terrainSize][terrainSize-1] +
+                ter[terrainSize-1][terrainSize-1] +
+                ter[terrainSize-1][terrainSize]
+            ) / 3;
+
+            // Do the other points
+            for(var i = 0; i < terrainSize; i++) {
+                for(var j = 0; j < terrainSize; j++) { // Average the heights of all the surrounding vertices
+                    // Case 0: Skip if it is a corner
+                    if((i==0&&j==0) || (i==0&&j==terrainSize) || (i==terrainSize&&j==0) || (i==terrainSize&&j==terrainSize))
+                        continue;
+                    // Case 1: On left side (i = 0)
+                    if(i == 0) {
+                        ter[i][j] = (
+                            ter[i][j-1] +       // Top mid
+                            ter[i+1][j-1] +     // Top right
+                            ter[i+1][j] +       // Mid right
+                            ter[i][j+1] +       // Bot mid
+                            ter[i+1][j+1]       // Bot right
+                        ) / 5;
+                    }
+                    // Case 2: On right side (i = terrainSize)
+                    else if(i == terrainSize) {
+                        ter[i][j] = (
+                            ter[i-1][j-1] +     // Top left
+                            ter[i][j-1] +       // Top mid
+                            ter[i-1][j] +       // Mid left
+                            ter[i-1][j+1] +     // Bot left
+                            ter[i][j+1]         // Bot mid
+                        ) / 5;
+                    }
+                    // Case 3: On top side (j = 0)
+                    else if(j == 0) {
+                        ter[i][j] = (
+                            ter[i-1][j] +       // Mid left
+                            ter[i+1][j] +       // Mid right
+                            ter[i-1][j+1] +     // Bot left
+                            ter[i][j+1] +       // Bot mid
+                            ter[i+1][j+1]       // Bot right
+                        ) / 5;
+                    }
+                    // Case 4: On bottom side (j = terrainSize)
+                    else if(j == terrainSize) {
+                        ter[i][j] = (
+                            ter[i-1][j-1] +     // Top left
+                            ter[i][j-1] +       // Top mid
+                            ter[i+1][j-1] +     // Top right
+                            ter[i-1][j] +       // Mid left
+                            ter[i+1][j]        // Mid right
+                        ) / 5;
+                    }
+                    else { // Otherwise
+                        ter[i][j] = (
+                            ter[i-1][j-1] +     // Top left
+                            ter[i][j-1] +       // Top mid
+                            ter[i+1][j-1] +     // Top right
+                            ter[i-1][j] +       // Mid left
+                            ter[i+1][j] +       // Mid right
+                            ter[i-1][j+1] +     // Bot left
+                            ter[i][j+1] +       // Bot mid
+                            ter[i+1][j+1]       // Bot right
+                        ) / 8;
+                    }
+                }
+            }
+        }
+}
+
+var plane = new THREE.Mesh(geom, groundMat);
+
+plane.rotation.x -= Math.PI / 2;
+plane.castShadow = false;
+plane.receiveShadow = false;
+
+// Adding the terrain mapped to plane
+scene.add( plane );
+
+/**
+ * Create the heightmap
+ * Inspiration from https://www.youtube.com/watch?v=wULUAhckH9w & https://www.youtube.com/watch?v=G0hWjD0n46c&t=43s
+ */ 
+let backgroundTerrain = undefined;
+//const bumpScale = terrainSize/10;
+function loadHeightMap() {
+
+    /**
+    // Load texture and create geometry
+    const bumpTexture = new THREE.TextureLoader().load( './media/height_map_1.jpg' )
+    const groundGeo = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSize/10, terrainSize/10);
+    groundGeo.verticesNeedUpdate = true;
+    groundGeo.computeFaceNormals();
+    groundGeo.computeVertexNormals();
+
+    // Make the texture wrap or repeate, to wrap do [1,1]
+    bumpTexture.wrapS = bumpTexture.wrapT = THREE.Repeating;
+    bumpTexture.repeat.set( 1, 1 );
+
+    // Create uniforms to send to the shaders.
+    const uniforms = {
+        bumpTexture: { value: bumpTexture },
+        bumpScale: { value: bumpScale }, // Higher the number, the more the mesh verticies will be displaced.
+    };
+
+    // Create the ground material
+    const groundMat = new THREE.ShaderMaterial({ 
+        uniforms: uniforms,
+        vertexShader: document.getElementById( 'vertexShader' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
+    });
+
+    // Create the background terrain material.
+    const backgroundTerrainMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        wireframe: true,
+        displacementMap: bumpTexture,
+        displacementScale: bumpScale, // Higher the number, the more the mesh verticies will be displaced.
+        bumpMap: bumpTexture,
+        bumpScale, bumpScale,
+    });
+
+    groundGeo.verticesNeedUpdate = true;
+    groundGeo.computeFaceNormals();
+    groundGeo.computeVertexNormals();
+    // Creating the ground mesh
+    terrain = new THREE.Mesh( groundGeo, groundMat );
+    scene.add( terrain );
+    terrain.rotation.x = -Math.PI/2;
+    terrain.position.y = 20;    
+
+    console.log(groundGeo);
+    **/
+    /**
+    const textureLoader = new THREE.TextureLoader();
+    // Loading in the height map and doing, and mapping the values to the geometry and verticies.
+    textureLoader.load('./media/height_map_1.jpg', function(t) {
+
+        var canvas = document.createElement("canvas");
+        canvas.width = t.image.width;
+        canvas.height = t.image.height;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(t.image, 0, 0, t.image.width, t.image.height);
+
+        var wdth = groundGeo.parameters.widthSegments + 1;
+        var hght = groundGeo.parameters.heightSegments + 1;
+        var widthStep = t.image.width / wdth;
+        var heightStep = t.image.height / hght;
+        console.log(wdth, hght, widthStep, heightStep);
+
+        for (var h = 0; h < hght; h++) {
+            for (var w = 0; w < wdth; w++) {
+                var imgData = ctx.getImageData(Math.round(w * widthStep), Math.round(h * heightStep), 1, 1).data;
+                var displacementVal = imgData[0] / 255.0;
+                displacementVal *= 2;
+                var idx = (h * wdth) + w;
+                var vert = groundGeo.vertices[idx];
+                vert.y = displacementVal;
+                //console.log(vert);
+            }
+        }
+
+        groundGeo.verticesNeedUpdate = true;
+        groundGeo.computeFaceNormals();
+
+        console.log("done");
+    });
+    */
+
+    /*
+    // Creating the ground mesh
+    backgroundTerrain = new THREE.Mesh( groundGeo, backgroundTerrainMat );
+    scene.add( backgroundTerrain );
+    backgroundTerrain.rotation.x = -Math.PI/2;
+    backgroundTerrain.position.y = 20;    
+
+    console.log(backgroundTerrain);
+    */
+}
+// Loading in the height map & texture
+//loadHeightMap();
+
+/**
+ * Adding in grid sky
+ */
+// Adding sky background.
+// Assistance and method from https://www.youtube.com/watch?v=oqKzxPMLWxo &
+// https://www.youtube.com/watch?v=cp-H_6VODko
+const skyLoader = new THREE.CubeTextureLoader();
+const texture = skyLoader.load([
+      './media/skybox/dust_ft.jpg',
+      './media/skybox/dust_bk.jpg',
+      './media/skybox/dust_up.jpg',
+      './media/skybox/dust_dn.jpg',
+      './media/skybox/dust_rt.jpg',
+      './media/skybox/dust_lf.jpg',
+  ]);
+texture.encoding = THREE.sRGBEncoding;
+scene.background = texture;
+
+
+
+/**
+ * Camera movement 
+ */ 
+/* Mouse Moving
+Got assistance from https://stackoverflow.com/questions/37837189/turning-around-using-mouse-in-three-js
+*/
+var startX, startY;
+function downClbk(e) {
+  renderer.domElement.addEventListener('mousemove', moveClbk);
+  startX = e.clientX; startY = e.clientY;
+}
+function upClbk(e) {
+  renderer.domElement.removeEventListener('mousemove', moveClbk);
+}
+function moveClbk(e) {
+  var delX = e.clientX - startX;
+  var delY = e.clientY - startY;
+  var width = window.innerWidth, height = window.innerHeight, min = Math.min(width, height);
+  camera.rotation.x += delY/min;
+  camera.rotation.y += delX/min;
+  startX = e.clientX; startY = e.clientY;
+  //renderer.render(scene, camera);
+}
+renderer.domElement.addEventListener('mousedown', downClbk);
+renderer.domElement.addEventListener('mouseup', upClbk);
+
+/**
+ * KeyPress Events & Walking
+ */ 
+
+// Keyboard Input Listener
+document.addEventListener('keydown', (e) => {
+    //if(!keysPressed.includes(e.key)) {
+    //    keysPressed.push(e.key);
+    //}
+    moveCamera(e.key);
+});
+/**
+document.addEventListener('keyup', (e) => {
+    if(keysPressed.includes(e.key)) {
+        arrayRemove(keysPressed, e.key);
+    }
+
+    console.log(keysPressed);
+});
+
+function arrayRemove(arr, value) { 
+    
+    return arr.filter(function(ele){ 
+        return ele != value; 
+    });
+}
+
+var keysPressed = [];
+var timepassed = 0;
+// While there are keys being held down, move the camera by x keys
+while(keysPressed.length > 0) {
+    if(timepassed++ > 10) {
+        
+        keysPressed.forEach((key) => {
+            moveCamera(key);
+        });
+
+        timepassed = 0;
+    }
+}
+*/
+
+//raycaster
+var raycaster = new THREE.Raycaster();
+
+function moveCamera( direction ) {
+    const moveSpeed = 1;
+    const halfTerrain = (terrainSize/2);
+    const sendBackMoveSpeedMultiplier = 5;
+
+    // If out of bounds return
+    if(camera.position.x > (halfTerrain - moveSpeed)) {
+        // send two back
+        camera.position.x = halfTerrain - (moveSpeed * sendBackMoveSpeedMultiplier);
+    } else if(camera.position.x < -1 * (halfTerrain - moveSpeed)) {
+        camera.position.x = halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
+    } else if(camera.position.z > (halfTerrain - moveSpeed)) {
+        camera.position.z = halfTerrain - (moveSpeed * sendBackMoveSpeedMultiplier);
+    } else if(camera.position.z < -1 * (halfTerrain - moveSpeed)) {
+        camera.position.z = halfTerrain + (moveSpeed * sendBackMoveSpeedMultiplier);
+    }
+    
+    // If hitting a tree return
+
+    // Tree collision detection
+    //for(var i = 0; i < trees.length; i++) {
+    //    if(isColliding(camera, trees[i].group)) {
+    //        camera.translateZ(moveSpeed * sendBackMoveSpeedMultiplier);
+    //        console.log("Collission with tree.");
+    //    }
+    //}
+
+    //var vector = new THREE.Vector3(); // create once and reuse it!
+    //camera.getWorldDirection( vector );
+    //console.log(vector);
+
+    console.log(terrain);
+
+    // Move in the direction
+    switch( direction ) {
+        case 'w': {
+            camera.translateZ(-moveSpeed);            
+        }; break;
+        case 'a': {
+            camera.translateX(-moveSpeed);
+        }; break;
+        case 's': {
+            camera.translateZ(moveSpeed);
+        }; break;
+        case 'd': {
+            camera.translateX(moveSpeed);
+        }; break;
+    }    
+    // Change camera y according to raycasting
+
+    
+    // Inspiration from https://io76.com/nca-map/
+    raycaster.set(camera.position, new THREE.Vector3(0, -1, 0).normalize());
+	var intersects = raycaster.intersectObject( plane );
+	
+    // If we do not interset, go up and try again
+    if(intersects.length <= 0) {
+
+    } 
+    // We have an intersection, use 0
+    else {
+        camera.position.y = (camera.position.y - intersects[0].distance) + 5;
+    }
+
+    
+    //render();
+}
+
+
+
+
+
+
+// Does the animation
+function animate() {
+    requestAnimationFrame(animate);
+    //controls.update();
+
+
+    render();
+}
+
+function render() {
+    renderer.render(scene, camera);
+}
+
+
+// Initiate graphical loop
+animate();
+
+    </script>
+
+</body>
+</html>
