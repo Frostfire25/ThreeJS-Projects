@@ -93,6 +93,8 @@ void main() {
 <!--Object Scripts-->
 <script type="text/javascript" src="/js/Ground.js"></script>
 <script type="text/javascript" src="/js/Dummy.js"></script>
+<script type="text/javascript" src="/js/SmokeParticle.js"></script>
+
 
 <script type="text/javascript">
 
@@ -313,7 +315,7 @@ mtlLoader.load('./media/uziGold.mtl', function(materials) {
 
 // Bullet + Cannonball mechanics
 var lookAtVector = new THREE.Vector3();
-
+var smokes = [];
 document.addEventListener('mousedown', (e) => {
     if(e.button == 0) { // If left click is clicked, spawn a bullet from the gun
         var direction = controls.getDirection(lookAtVector).normalize();
@@ -335,33 +337,13 @@ document.addEventListener('mousedown', (e) => {
             bullet = null;
         }, 2000);
 
-        var vector = new THREE.Vector3(); // create once and reuse it!
-        camera.getWorldDirection( vector );
-        //console.log(vector);
-        //console.log(camera.position);
 
-        /**
-        var box = new Physijs.BoxMesh(
-                new THREE.CubeGeometry( 0.1, 0.1, 0.1 ),
-                new THREE.MeshPhongMaterial({ color: 0x888888 }),
-             5000000000);
-        //box.position.set( camera.position.x + (vector.x * 4), camera.position.y + (vector.y * 0), camera.position.z + (vector.z * 2) );
-
-        var vec = new THREE.Vector3();
-        console.log(gun.getWorldPosition(vec));
-        box.position.set( gun.position.x, gun.position.y, gun.position.z);
-        scene.add( box );
-        */
-
+        // Smoke mechanics
         var vec = new THREE.Vector3();
         var GWP = gun.getWorldPosition(vec);
-
-        
-
-
-        
-
-
+        var smoke = new Smoke(GWP, 75, 100);
+        smoke.init(scene);
+        smokes.push(smoke);
 
     } else if (e.button == 2) { // If right click is clicked, spawn a cannonball from the gun
 
@@ -387,8 +369,25 @@ document.addEventListener('mousedown', (e) => {
             scene.remove( cannonball );
             cannonball = null;
         }, 5000);
+
+        
+        // Smoke mechanics
+        var vec = new THREE.Vector3();
+        var GWP = gun.getWorldPosition(vec);
+        var smoke = new Smoke(GWP, 300, 500);
+        smoke.init(scene);
+        smokes.push(smoke);
     }   
 })
+
+// Smoke despawn
+function despawnSmoke(smoke) {
+    for(var i = 0; i < smokes.length; i++) {
+        if(smokes[i] === smoke) {
+            smokes.splice(i, 1);
+        }
+    }
+}
 
 
 //raycaster
@@ -560,8 +559,9 @@ function animate() {
     // Animate the crosshair (sprite) every time we render
     updateCrosshairPosition();
 
-    // Animate the gun every time we render
-    //updateGunPosition();
+    // Animating smoke if it exists
+    if(smokes.length > 0)
+        smokes.forEach((smoke) => { smoke.update(); });
 
     spawnRandomDummy();
 
