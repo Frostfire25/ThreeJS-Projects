@@ -313,19 +313,17 @@ mtlLoader.load('./media/uziGold.mtl', function(materials) {
 
 // Bullet + Cannonball mechanics
 var lookAtVector = new THREE.Vector3();
+
 document.addEventListener('mousedown', (e) => {
     if(e.button == 0) { // If left click is clicked, spawn a bullet from the gun
         var direction = controls.getDirection(lookAtVector).normalize();
         var spawnPos = camera.position.clone();
-        var bullet = new Physijs.CylinderMesh(
-			new THREE.CylinderGeometry( 0.1, 0.1, 2, 8),
+        var bullet = new Physijs.SphereMesh(
+			new THREE.SphereGeometry( 0.05, 16, 16 ),
 			new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 20}),
             50
 		);
-        bullet.position.set(spawnPos.x + direction.x * 3, spawnPos.y + direction.y * 3- 0.4, spawnPos.z + direction.z * 3);
-        bullet.rotation.set((direction.x - direction.z) * Math.PI / 2, 0, 0);
-
-        console.log(direction);
+        bullet.position.set(spawnPos.x + direction.x * 3, spawnPos.y + direction.y * 3 - 0.4, spawnPos.z + direction.z * 3)
 		scene.add( bullet );
 
         bullet.applyCentralImpulse(new THREE.Vector3(direction.x * 10000, direction.y * 10000, direction.z * 10000));
@@ -439,6 +437,11 @@ function spawnDummy(vec) {
 
     dummy1.init(scene);
     dummies.push(dummy1);
+
+    setTimeout(() => {
+        if(dummy1 != null)
+            despawnDummy(dummy1);
+    }, 60000);
 }
 
 // Removes dummy from list of references (prevents memory leaks)
