@@ -335,13 +335,45 @@ document.addEventListener('mousedown', (e) => {
             bullet = null;
         }, 2000);
 
+        var vector = new THREE.Vector3(); // create once and reuse it!
+        camera.getWorldDirection( vector );
+        //console.log(vector);
+        //console.log(camera.position);
+
+        /**
+        var box = new Physijs.BoxMesh(
+                new THREE.CubeGeometry( 0.1, 0.1, 0.1 ),
+                new THREE.MeshPhongMaterial({ color: 0x888888 }),
+             5000000000);
+        //box.position.set( camera.position.x + (vector.x * 4), camera.position.y + (vector.y * 0), camera.position.z + (vector.z * 2) );
+
+        var vec = new THREE.Vector3();
+        console.log(gun.getWorldPosition(vec));
+        box.position.set( gun.position.x, gun.position.y, gun.position.z);
+        scene.add( box );
+        */
+
+        var vec = new THREE.Vector3();
+        var GWP = gun.getWorldPosition(vec);
+
+        
+
+
+        
+
+
+
     } else if (e.button == 2) { // If right click is clicked, spawn a cannonball from the gun
 
         var direction = controls.getDirection(lookAtVector).normalize();
         var spawnPos = camera.position.clone();
         var cannonball = new Physijs.SphereMesh(
 			new THREE.SphereGeometry( 0.25, 16, 16 ),
-			new THREE.MeshPhongMaterial({ color: 0x101010 }),
+			new THREE.MeshPhongMaterial({ 
+                color: 0x101010,
+                shininess: 90,
+                reflectivity: 0.8
+            }),
             5000000000000000
 		);
         cannonball.position.set(spawnPos.x + direction.x * 3, spawnPos.y + direction.y * 3- 0.4, spawnPos.z + direction.z * 3);
