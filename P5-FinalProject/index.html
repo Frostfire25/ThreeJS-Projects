@@ -131,7 +131,8 @@ const loader = new THREE.TextureLoader();
 
 // Camera
 var camera = new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, .1, 3000 );
-camera.position.set(0,200,0);
+camera.position.set(0,0,0);
+camera.lookAt(0, 0, 0);
 scene.add( camera );
 
 // Define renderer
@@ -157,7 +158,7 @@ scene.add(light);
 
 // Adding in pointer lock controls
 const controls = new THREE.PointerLockControls( camera, document.body );
-// const controls = new THREE.OrbitControls(camera, renderer.domElement);
+//const controls = new THREE.OrbitControls(camera, renderer.domElement);
 renderer.domElement.addEventListener('click', mouseClick);
 function mouseClick(e) {
     controls.lock();
@@ -245,12 +246,8 @@ dummy1.init(scene);
 document.addEventListener('keydown', (e) => {
 
     if(e.key == 'i') {
-        //dummy1.enableAllPhysics();
-        console.log(dummy1);
         dummy1.leftForearm.setAngularFactor(new THREE.Vector3(1, 1, 1));
         dummy1.leftForearm.setLinearFactor(new THREE.Vector3(1, 1, 1));
-        console.log(dummy1.leftForearm.getAngularVelocity());
-        console.log(dummy1.leftForearm.getLinearVelocity());
         dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, 0, -1000), new THREE.Vector3(0, -3.5, 0));
         //box.applyImpulse(new THREE.Vector3(0, -500000000000, -1000000000000), new THREE.Vector3(0, -3.5, 0));
     } else if(e.key == 'j') {
@@ -302,11 +299,10 @@ mtlLoader.load('./media/uziGold.mtl', function(materials) {
     objLoader.load('./media/uziGold.obj', function(mesh) {
         gun = mesh;
 
-        console.log(gun);
-
-        gun.position.set(0,2,0);
+        gun.position.set(0.12, -0.2, -0.5);
         gun.scale.set(7,7,7);
-        scene.add(gun);
+        camera.add(gun);
+        camera.position.y = 200;
     });
 });
 
@@ -374,7 +370,7 @@ function moveCamera( direction ) {
 
 /**
  * Updates the sprites position based on the camera
- */ 
+ 
  function updateGunPosition() {
     var vector = new THREE.Vector3(); // create once and reuse it!
     camera.getWorldDirection( vector );
@@ -389,7 +385,7 @@ function moveCamera( direction ) {
 		camera.rotation.y - Math.PI,
 		camera.rotation.z
 	);
-}
+}*/ 
 
 
 // Does the animation
@@ -402,7 +398,7 @@ function animate() {
     updateCrosshairPosition();
 
     // Animate the gun every time we render
-    updateGunPosition();
+    //updateGunPosition();
 
     render();
 }
@@ -410,9 +406,6 @@ function animate() {
 function render() {
     renderer.render(scene, camera);
 }
-
-// Move the camera one step to bring it to the correct positon
-moveCamera('w');
 
 // Initiate graphical loop
 animate();
