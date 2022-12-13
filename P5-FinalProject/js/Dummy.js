@@ -3,6 +3,7 @@ function Dummy(spawn, col, m) {
     this.color = col
     this.mass = m
     this.__allMeshes = [];
+    this.physicsEnabled = false;
     this.createArm = function() {
         return new Physijs.BoxMesh(
             new THREE.CubeGeometry( 0.75, 1.75, 0.75 ),
@@ -244,8 +245,18 @@ function Dummy(spawn, col, m) {
         mesh.setLinearFactor(new THREE.Vector3(1, 1, 1));
     }
     this.enableAllPhysics = function() {
-        this.__allMeshes.forEach((mesh) => { // Disable angular factor constriction
-            this.enablePhysics(mesh);
-        });
+        if(!this.physicsEnabled) { // If physics are not enabled, enable them
+            this.physicsEnabled = true;
+            this.__allMeshes.forEach((mesh) => { // Disable angular factor constriction
+                this.enablePhysics(mesh);
+            });
+            setTimeout(() => {  // After 10s delete every object
+                console.log("Cleaning up");
+                this.__allMeshes.forEach((mesh) => {
+                    scene.remove(mesh);
+                });
+                this.__allMeshes == null;
+            }, 10000);
+        }
     }
 }
