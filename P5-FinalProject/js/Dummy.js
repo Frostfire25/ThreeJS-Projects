@@ -251,7 +251,6 @@ function Dummy(spawn, col, m) {
                 this.enablePhysics(mesh);
             });
             setTimeout(() => {  // After 10s delete every object
-                console.log("Cleaning up");
                 this.__allMeshes.forEach((mesh) => {
                     scene.remove(mesh);
                 });

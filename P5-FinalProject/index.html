@@ -230,20 +230,20 @@ scene.background = texture;
  */
 var startX, startY;
 function downClbk(e) {
-  renderer.domElement.addEventListener('mousemove', moveClbk);
-  startX = e.clientX; startY = e.clientY;
+    renderer.domElement.addEventListener('mousemove', moveClbk);
+    startX = e.clientX; startY = e.clientY;
 }
 function upClbk(e) {
-  renderer.domElement.removeEventListener('mousemove', moveClbk);
+    renderer.domElement.removeEventListener('mousemove', moveClbk);
 }
 function moveClbk(e) {
-  var delX = e.clientX - startX;
-  var delY = e.clientY - startY;
-  var width = window.innerWidth, height = window.innerHeight, min = Math.min(width, height);
-  camera.rotation.x += delY/min;
-  camera.rotation.y += delX/min;
-  startX = e.clientX; startY = e.clientY;
-  //renderer.render(scene, camera);
+    var delX = e.clientX - startX;
+    var delY = e.clientY - startY;
+    var width = window.innerWidth, height = window.innerHeight, min = Math.min(width, height);
+    camera.rotation.x += delY/min;
+    camera.rotation.y += delX/min;
+    startX = e.clientX; startY = e.clientY;
+    //renderer.render(scene, camera);
 }
 renderer.domElement.addEventListener('mousedown', downClbk);
 renderer.domElement.addEventListener('mouseup', upClbk);
@@ -254,30 +254,7 @@ renderer.domElement.addEventListener('mouseup', upClbk);
 
 // Keyboard Input Listener
 document.addEventListener('keydown', (e) => {
-
-    if(e.key == 'i') {
-        dummies[0].leftForearm.setAngularFactor(new THREE.Vector3(1, 1, 1));
-        dummies[0].leftForearm.setLinearFactor(new THREE.Vector3(1, 1, 1));
-        dummies[0].leftForearm.applyImpulse(new THREE.Vector3(0, 0, -1000), new THREE.Vector3(0, -3.5, 0));
-        //box.applyImpulse(new THREE.Vector3(0, -500000000000, -1000000000000), new THREE.Vector3(0, -3.5, 0));
-    } else if(e.key == 'j') {
-        dummies[0].enablePhysics(dummy1.leftForearm);
-        dummies[0].leftForearm.applyImpulse(new THREE.Vector3(-1000, 0, 0), new THREE.Vector3(0, -3.5, 0));
-    } else if(e.key == 'k') {
-        dummy1.enablePhysics(dummy1.leftForearm);
-        dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, -3.5, 0));
-    } else if(e.key == 'l') {
-        dummy1.enablePhysics(dummy1.leftForearm);
-        dummy1.leftForearm.applyImpulse(new THREE.Vector3(1000, 0, 0), new THREE.Vector3(0, -3.5, 0));
-    } else if(e.ctrlKey) {
-        dummy1.enablePhysics(dummy1.leftForearm);
-        dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, -500, 0), new THREE.Vector3(0, -3.5, 0));
-    } else if(e.shiftKey) {
-        dummy1.enablePhysics(dummy1.leftForearm);
-        dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, 1000, 0), new THREE.Vector3(0, -3.5, 0));
-    } else {
-        moveCamera(e.key);
-    }
+    moveCamera(e.key);
 });
 
 // Crosshair
@@ -319,6 +296,53 @@ mtlLoader.load('./media/uziGold.mtl', function(materials) {
 
     });
 });
+
+// Bullet + Cannonball mechanics
+var lookAtVector = new THREE.Vector3();
+document.addEventListener('mousedown', (e) => {
+    if(e.button == 0) { // If left click is clicked, spawn a bullet from the gun
+        var direction = controls.getDirection(lookAtVector).normalize();
+        var spawnPos = camera.position.clone();
+        var bullet = new Physijs.CylinderMesh(
+			new THREE.CylinderGeometry( 0.1, 0.1, 2, 8),
+			new THREE.MeshPhongMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 20}),
+            50
+		);
+        bullet.position.set(spawnPos.x + direction.x * 3, spawnPos.y + direction.y * 3- 0.4, spawnPos.z + direction.z * 3);
+        bullet.rotation.set((direction.x - direction.z) * Math.PI / 2, 0, 0);
+
+
+
+
+
+
+        console.log(direction);
+		scene.add( bullet );
+
+        bullet.applyCentralImpulse(new THREE.Vector3(direction.x * 10000, direction.y * 10000, direction.z * 10000));
+        setTimeout(() => { // After 2s, despawn the bullet
+            scene.remove( bullet );
+            bullet = null;
+        }, 2000);
+    } else if (e.button == 2) { // If right click is clicked, spawn a cannonball from the gun
+
+        var direction = controls.getDirection(lookAtVector).normalize();
+        var spawnPos = camera.position.clone();
+        var cannonball = new Physijs.SphereMesh(
+			new THREE.SphereGeometry( 0.25, 16, 16 ),
+			new THREE.MeshPhongMaterial({ color: 0x101010 }),
+            5000000000000000
+		);
+        cannonball.position.set(spawnPos.x + direction.x * 3, spawnPos.y + direction.y * 3- 0.4, spawnPos.z + direction.z * 3);
+		scene.add( cannonball );
+
+        cannonball.applyCentralImpulse(new THREE.Vector3(direction.x * 500000000000000000, direction.y * 500000000000000000, direction.z * 500000000000000000));
+        setTimeout(() => { // After 5s, despawn the cannonball
+            scene.remove( cannonball );
+            cannonball = null;
+        }, 5000);
+    }   
+})
 
 
 //raycaster
@@ -403,13 +427,11 @@ function spawnDummy(vec) {
 
 // Removes dummy from list of references (prevents memory leaks)
 function despawnDummy(dummy) {
-    console.log(dummies);
     for(var i = 0; i < dummies.length; i++) {
         if(dummies[i] === dummy) {
             dummies.splice(i, 1);
         }
     }
-    console.log(dummies);
 }
 
 
