@@ -256,13 +256,13 @@ renderer.domElement.addEventListener('mouseup', upClbk);
 document.addEventListener('keydown', (e) => {
 
     if(e.key == 'i') {
-        dummy1.leftForearm.setAngularFactor(new THREE.Vector3(1, 1, 1));
-        dummy1.leftForearm.setLinearFactor(new THREE.Vector3(1, 1, 1));
-        dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, 0, -1000), new THREE.Vector3(0, -3.5, 0));
+        dummies[0].leftForearm.setAngularFactor(new THREE.Vector3(1, 1, 1));
+        dummies[0].leftForearm.setLinearFactor(new THREE.Vector3(1, 1, 1));
+        dummies[0].leftForearm.applyImpulse(new THREE.Vector3(0, 0, -1000), new THREE.Vector3(0, -3.5, 0));
         //box.applyImpulse(new THREE.Vector3(0, -500000000000, -1000000000000), new THREE.Vector3(0, -3.5, 0));
     } else if(e.key == 'j') {
-        dummy1.enablePhysics(dummy1.leftForearm);
-        dummy1.leftForearm.applyImpulse(new THREE.Vector3(-1000, 0, 0), new THREE.Vector3(0, -3.5, 0));
+        dummies[0].enablePhysics(dummy1.leftForearm);
+        dummies[0].leftForearm.applyImpulse(new THREE.Vector3(-1000, 0, 0), new THREE.Vector3(0, -3.5, 0));
     } else if(e.key == 'k') {
         dummy1.enablePhysics(dummy1.leftForearm);
         dummy1.leftForearm.applyImpulse(new THREE.Vector3(0, 0, 1000), new THREE.Vector3(0, -3.5, 0));
@@ -386,7 +386,7 @@ function moveCamera( direction ) {
  * Dummy Spawning
  */ 
 
- // List of all of the dummies.
+// List of all of the dummies.
 var dummies = [];
 // Spawns a dummy at a position
 function spawnDummy(vec) {
@@ -399,6 +399,17 @@ function spawnDummy(vec) {
 
     dummy1.init(scene);
     dummies.push(dummy1);
+}
+
+// Removes dummy from list of references (prevents memory leaks)
+function despawnDummy(dummy) {
+    console.log(dummies);
+    for(var i = 0; i < dummies.length; i++) {
+        if(dummies[i] === dummy) {
+            dummies.splice(i, 1);
+        }
+    }
+    console.log(dummies);
 }
 
 
@@ -459,9 +470,6 @@ function spawnRandomDummy() {
 
         // Spawn the dummy
         spawnDummy(dummyPos);
-        
-        // Increase the number of dummies
-        numberOfDummies++;
 
         // Restart the clock
         clock = new THREE.Clock();
@@ -469,29 +477,6 @@ function spawnRandomDummy() {
         secNeededToSpawn = getRandomArbitraryInt(10,20);
     }
 }
-
-
-
-
-
-/**
- * Updates the sprites position based on the camera
- 
- function updateGunPosition() {
-    var vector = new THREE.Vector3(); // create once and reuse it!
-    camera.getWorldDirection( vector );
-
-    gun.position.set(
-        camera.position.x - Math.sin(camera.rotation.y) * 0.5, 
-        camera.position.y - 0.25, 
-        camera.position.z + Math.cos(camera.position.y) * 0.5);
-
-    gun.rotation.set(
-		camera.rotation.x,
-		camera.rotation.y - Math.PI,
-		camera.rotation.z
-	);
-}*/ 
 
 // Does the animation
 function animate() {
