@@ -368,8 +368,8 @@ function moveCamera( direction ) {
  * Dummy Spawning
  */ 
 
-var numberOfDummies = 0;
-
+ // List of all of the dummies.
+var dummies = [];
 // Spawns a dummy at a position
 function spawnDummy(vec) {
     // Testing dummy
@@ -380,6 +380,7 @@ function spawnDummy(vec) {
     );
 
     dummy1.init(scene);
+    dummies.push(dummy1);
 }
 
 
@@ -398,7 +399,7 @@ function spawnRandomDummy() {
     if(clock.getElapsedTime() < secNeededToSpawn)
         return;
 
-    if(numberOfDummies < maxNumOfDummies) {
+    if(dummies.length < maxNumOfDummies) {
 
         // Find a random position for the dummy in a radius of the camera
         const player_dummy_rad = 25;
