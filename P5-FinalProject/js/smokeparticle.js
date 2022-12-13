@@ -63,6 +63,6 @@ function SmokeParticle(mesh, smoke) {
     setTimeout(() => {
         scene.remove(this.mesh);
         smoke.__removeParticle(this)
-    }, getRandomArbitrary(100, 3000)); // B/w .2-1s
+    }, getRandomArbitrary(100, 250)); // B/w .2-1s
 
 }
