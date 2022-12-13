@@ -8,6 +8,14 @@
         <source src="./media/[LoFi] - Mikel - Ocarina of Time.mp3" type="audio/mpeg">
     </audio>
 
+    <audio id="lazerAudio" controls hidden >
+        <source src="./media/mixkit-short-laser-gun-shot-1670.wav" type="audio/mpeg">
+    </audio>
+
+    <audio id="cannonAudio" controls hidden >
+        <source src="./media/mixkit-game-gun-shot-1662.mp3" type="audio/mpeg">
+    </audio>
+
     <canvas id="myCanvas"></canvas>
 
 <script id = "vertexShader" type = "x-shader/x-vertex">
@@ -171,6 +179,12 @@ function mouseClick(e) {
 const audio = document.getElementById("audio");
 audio.volume = 0.15;
 
+const lazerAudio = document.getElementById("lazerAudio");
+lazerAudio.volume = 0.15;
+
+const cannonAudio = document.getElementById("cannonAudio");
+cannonAudio.volume = 0.15;
+
 controls.addEventListener( 'lock', function () {
     // Playing audio
     audio.play();
@@ -311,19 +325,18 @@ document.addEventListener('mousedown', (e) => {
         bullet.position.set(spawnPos.x + direction.x * 3, spawnPos.y + direction.y * 3- 0.4, spawnPos.z + direction.z * 3);
         bullet.rotation.set((direction.x - direction.z) * Math.PI / 2, 0, 0);
 
-
-
-
-
-
         console.log(direction);
 		scene.add( bullet );
 
         bullet.applyCentralImpulse(new THREE.Vector3(direction.x * 10000, direction.y * 10000, direction.z * 10000));
+        
+        lazerAudio.play();
+
         setTimeout(() => { // After 2s, despawn the bullet
             scene.remove( bullet );
             bullet = null;
         }, 2000);
+
     } else if (e.button == 2) { // If right click is clicked, spawn a cannonball from the gun
 
         var direction = controls.getDirection(lookAtVector).normalize();
@@ -337,6 +350,9 @@ document.addEventListener('mousedown', (e) => {
 		scene.add( cannonball );
 
         cannonball.applyCentralImpulse(new THREE.Vector3(direction.x * 500000000000000000, direction.y * 500000000000000000, direction.z * 500000000000000000));
+        
+        cannonAudio.play();
+
         setTimeout(() => { // After 5s, despawn the cannonball
             scene.remove( cannonball );
             cannonball = null;
@@ -457,7 +473,7 @@ function spawnRandomDummy() {
 
         var dummyPos = camera.position.clone();
         dummyPos.x = dummyPos.x + getRandomArbitraryInt(-player_dummy_rad, player_dummy_rad);
-        dummyPos.z = dummyPos.x + getRandomArbitraryInt(-player_dummy_rad, player_dummy_rad);
+        dummyPos.z = dummyPos.z + getRandomArbitraryInt(-player_dummy_rad, player_dummy_rad);
 
         // If the dummy's position is off the terrain, minus x back
         const halfTerrain = (ground.terrainSize/2);
@@ -496,7 +512,7 @@ function spawnRandomDummy() {
         // Restart the clock
         clock = new THREE.Clock();
         clock.start();
-        secNeededToSpawn = getRandomArbitraryInt(10,20);
+        secNeededToSpawn = getRandomArbitraryInt(5,10);
     }
 }
 

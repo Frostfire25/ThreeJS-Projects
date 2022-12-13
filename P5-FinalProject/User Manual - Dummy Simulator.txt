@@ -21,6 +21,7 @@
 Usage Guide.
 
 Controls.
+
 W - Forward Walking
 A - Left Walking
 D - Right Walking
@@ -32,6 +33,7 @@ Left Click - Shoots a lazer (1.0x force)
 Right Click - Shoots a cannon ball (2.0x force)
 
 Overview.
+
 You spawn inside a 512x512 terrain. The goal of the game is to walk arround and shoot a variety of spawning
 dummys. Once shooting, the dummys will fly around. Their bodys will contor with the placement of the associated bullet.
 Dummys spawn within a 25 block radius of the players character. 
@@ -41,3 +43,39 @@ Walking is restrained to the bounding box of the terrain (512x512).
 
 General game music plays casually in the background, while lazer and gun sounds are also present when shooting.
 
+Dicussion & Decisions.
+
+Why was this simulator a challenge to build?
+
+One of the toughest parts of the simulator to build was the flexibility of the dummys.
+Allowing them to maintain their form as rigid bodies while also flying around the map was tough.
+We ended up using a physics library to assist in the process of mainting a rigid, flexible body for the dummies.
+
+Here are some screneshots of our test enviornment for the dummies. 
+They are recieving a incomming force applied from a BoxGeometry.
+
+https://media.discordapp.net/attachments/894784316255666286/1051745188961333318/image.png
+https://cdn.discordapp.com/attachments/894784316255666286/1051744749108862976/image.png
+https://cdn.discordapp.com/attachments/894784316255666286/1051744695799259148/image.png
+
+Along with that, getting the gun model and texture to load into the scene was a challenge.
+Aligning both to follow the camera was tough, as we wanted to have some animations for the 
+movement of the gun alongside the camera.
+Though, we decided to attach the gun model as a group with the camera in the end, 
+allowing the gun to stay in a consistent position.
+
+https://cdn.discordapp.com/attachments/894784316255666286/1051252322325508176/image.png
+
+Terrain generation was something we also played around with. 
+Origionlly, we used vertex shaders and displacement maps to load in a texture from a heightmap.
+Though, we quickly realized that you can not raycast onto a terrain loaded in a vertex shader correctly.
+We looked at soluations for this issue, but quickly realized that it would be too complicated to attempt to resolve.
+
+The following is some images of the generated terrain.
+https://cdn.discordapp.com/attachments/894784316255666286/1049904666441416754/image.png
+https://cdn.discordapp.com/attachments/894784316255666286/1049902332218986547/image.png
+https://cdn.discordapp.com/attachments/894784316255666286/1049898891430088734/image.png
+
+During this process we used fragment shaders which allow for displacement of the each fragment on render to 
+change the color of the terrain based on the heightmap provided. This in turn caused some issues.
+Though we enjoyed the generated pattern and decided to keep it mapped to the displayed terrain. 
